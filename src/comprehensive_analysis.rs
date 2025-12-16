@@ -42,12 +42,24 @@ impl<'a> ComprehensiveAnalyzer<'a> {
         let mut total_glue = 0;
         let total_words = self.words.len();
         
-        // Track cumulative position
-        let mut cumulative_pos = 0;
+        // Track actual position safely
+        let mut current_search_idx = 0;
 
         for (i, sentence) in self.sentences.iter().enumerate() {
-            let sentence_start = cumulative_pos;
-            let sentence_end = cumulative_pos + sentence.len();
+            // Find actual byte offset of this sentence in the text
+            // matching strictly from the previous position forward
+            let (sentence_start, sentence_end) = match self.text[current_search_idx..].find(sentence) {
+                Some(offset) => {
+                    let start = current_search_idx + offset;
+                    (start, start + sentence.len())
+                },
+                None => (0, 0) // Should not happen given sentences are derived from text
+            };
+
+            // Update search index for next iteration
+            if sentence_end > 0 {
+                current_search_idx = sentence_end;
+            }
             
             let words: Vec<String> = WORD_PATTERN
                 .find_iter(&sentence.to_lowercase())
@@ -55,7 +67,6 @@ impl<'a> ComprehensiveAnalyzer<'a> {
                 .collect();
 
             if words.is_empty() {
-                cumulative_pos = sentence_end + 1;
                 continue;
             }
 
@@ -63,7 +74,7 @@ impl<'a> ComprehensiveAnalyzer<'a> {
             let glue_percentage = (glue_count as f64 / words.len() as f64) * 100.0;
 
             if glue_percentage > 40.0 {
-                // Safely truncate at character boundary, not byte boundary
+                // Safely truncate at character boundary
                 let truncated = if sentence.chars().count() > 100 {
                     let truncated: String = sentence.chars().take(100).collect();
                     format!("{}...", truncated)
@@ -80,8 +91,6 @@ impl<'a> ComprehensiveAnalyzer<'a> {
                     length: sentence.len(),
                 });
             }
-            
-            cumulative_pos = sentence_end + 1; // +1 for separator
         }
 
         // Calculate overall glue index
@@ -209,12 +218,23 @@ impl<'a> ComprehensiveAnalyzer<'a> {
         let mut sentences_with_transitions = 0;
         let mut transition_counts: HashMap<String, usize> = HashMap::new();
         
-        // Track cumulative position for sentences
-        let mut cumulative_pos = 0;
+        let mut current_search_idx = 0;
 
         for (sent_idx, sentence) in self.sentences.iter().enumerate() {
+            // Find sentence position safely
+            let (sentence_start, sentence_end) = match self.text[current_search_idx..].find(sentence) {
+                Some(offset) => {
+                    let start = current_search_idx + offset;
+                    (start, start + sentence.len())
+                },
+                None => (current_search_idx, current_search_idx + sentence.len())
+            };
+
+            if sentence_end > current_search_idx {
+                current_search_idx = sentence_end;
+            }
+
             let sentence_num = sent_idx + 1;
-            let sentence_start = cumulative_pos;
             let sentence_lower = sentence.to_lowercase();
             let mut found_in_sentence = false;
 
@@ -267,8 +287,6 @@ impl<'a> ComprehensiveAnalyzer<'a> {
             if found_in_sentence {
                 sentences_with_transitions += 1;
             }
-            
-            cumulative_pos = sentence_start + sentence.len() + 1; // +1 for separator
         }
 
         let total_sentences = self.sentences.len();
@@ -826,12 +844,22 @@ impl<'a> ComprehensiveAnalyzer<'a> {
         let mut complex_paragraphs = Vec::new();
         let splitter = SentenceSplitter::default();
         
-        // Track cumulative position for paragraphs
-        let mut cumulative_pos = 0;
+        // Track cumulative position safely
+        let mut current_search_idx = 0;
 
         for (i, paragraph) in self.paragraphs.iter().enumerate() {
-            let para_start = cumulative_pos;
-            let para_end = cumulative_pos + paragraph.len();
+            // Find paragraph position safely
+            let (para_start, para_end) = match self.text[current_search_idx..].find(paragraph) {
+                Some(offset) => {
+                    let start = current_search_idx + offset;
+                    (start, start + paragraph.len())
+                },
+                None => (current_search_idx, current_search_idx + paragraph.len())
+            };
+
+            if para_end > current_search_idx {
+                current_search_idx = para_end;
+            }
             
             let sentences = splitter.split(paragraph)?;
             let words: Vec<String> = WORD_PATTERN
@@ -855,8 +883,6 @@ impl<'a> ComprehensiveAnalyzer<'a> {
                     });
                 }
             }
-            
-            cumulative_pos = para_end + 2; // +2 for paragraph separator (usually \n\n)
         }
 
         let total_paragraphs = self.paragraphs.len();

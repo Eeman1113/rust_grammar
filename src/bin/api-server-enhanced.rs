@@ -547,15 +547,25 @@ async fn get_sentence_length(Json(payload): Json<SentenceLengthRequest>) -> Resu
         let mut current_pos = 0;
 
         for sentence_text in paragraph_sentences {
+            // FIX: Ensure current_pos is a valid char boundary before slicing
+            while current_pos < paragraph.text.len() && !paragraph.text.is_char_boundary(current_pos) {
+                current_pos += 1;
+            }
+            
+            // Stop if we've reached the end
+            if current_pos >= paragraph.text.len() {
+                break;
+            }
+
             // Find the sentence in the paragraph text
             if let Some(start) = paragraph.text[current_pos..].find(sentence_text.trim()) {
                 let actual_start = current_pos + start;
                 let end = actual_start + sentence_text.len();
                 let word_count = sentence_text.split_whitespace().count();
 
-                // Truncate string to 50 characters with "..."
-                let display_string = if sentence_text.len() > 50 {
-                    format!("{}...", &sentence_text[..50])
+                // FIX: Truncate string using chars to avoid slicing middle of multibyte chars
+                let display_string = if sentence_text.chars().count() > 50 {
+                    format!("{}...", sentence_text.chars().take(50).collect::<String>())
                 } else {
                     sentence_text.clone()
                 };
@@ -758,6 +768,12 @@ fn calculate_comprehensive_scores(
     let mut current_pos = 0;
     
     for sentence in &sentences {
+        // FIX: Ensure current_pos is valid char boundary
+        while current_pos < text.len() && !text.is_char_boundary(current_pos) {
+            current_pos += 1;
+        }
+        if current_pos >= text.len() { break; }
+
         // Find sentence in text
         if let Some(pos) = text[current_pos..].find(sentence.trim()) {
             let start = current_pos + pos;
@@ -768,7 +784,8 @@ fn calculate_comprehensive_scores(
                 start,
                 end,
                 length: end - start,
-                string: if sentence.len() > 50 {
+                // FIX: Truncate string using chars for safety
+                string: if sentence.chars().count() > 50 {
                     sentence.chars().take(50).collect::<String>() + "..."
                 } else {
                     sentence.clone()
@@ -816,7 +833,7 @@ fn calculate_comprehensive_scores(
         style_score: ScoreDetail {
             score: full_report.style_score,
             percentage: full_report.style_score as f64,
-            message: Some(get_style_message(full_report.style_score)),
+            message: Some(get_style_score_message(full_report.style_score)),
         },
         
         style_guide_compliance: ScoreDetail {
@@ -1055,12 +1072,13 @@ fn convert_to_issues(
 }
 
 // Helper functions
-fn get_style_message(score: i32) -> String {
+fn get_style_score_message(score: i32) -> String {
     match score {
-        90..=100 => "Excellent writing!".to_string(),
-        80..=89 => "Good writing with minor improvements needed".to_string(),
-        70..=79 => "Adequate writing, could be improved".to_string(),
-        _ => "Needs significant improvement".to_string(),
+        90..=100 => "Excellent! Your writing style is clear, engaging, and professional.".to_string(),
+        80..=89 => "Great work! Your writing is strong with minor areas for improvement.".to_string(),
+        70..=79 => "Good foundation. Focus on reducing passive voice and improving sentence variety.".to_string(),
+        60..=69 => "Fair writing. Work on clarity by reducing glue words and varying sentence length.".to_string(),
+        _ => "Needs improvement. Focus on reducing passive voice, glue words, and improving readability.".to_string(),
     }
 }
 
@@ -1152,7 +1170,7 @@ fn count_syllables(word: &str) -> usize {
     let mut previous_was_vowel = false;
     let chars: Vec<char> = word.chars().collect();
     
-    for (i, ch) in chars.iter().enumerate() {
+    for (_i, ch) in chars.iter().enumerate() {
         let is_vowel = vowels.contains(&ch.to_lowercase().next().unwrap_or(' '));
         
         if is_vowel && !previous_was_vowel {
@@ -1206,7 +1224,8 @@ fn analyze_dialogue(text: &str) -> ((f64, usize, usize), (f64, usize, usize), (f
 }
 
 fn extract_text(text: &str, start: usize, end: usize) -> String {
-    text.chars().skip(start).take(end - start).collect()
+    // FIX: Use the safe_slice helper to handle byte indices correctly
+    safe_slice(text, start, end).to_string()
 }
 
 fn estimate_paragraph(text: &str, position: usize) -> usize {
@@ -1241,15 +1260,7 @@ fn split_into_sentences(text: &str) -> Vec<String> {
 }
 
 // Message helper functions for /score endpoint
-fn get_style_score_message(score: i32) -> String {
-    match score {
-        90..=100 => "Excellent! Your writing style is clear, engaging, and professional.".to_string(),
-        80..=89 => "Great work! Your writing is strong with minor areas for improvement.".to_string(),
-        70..=79 => "Good foundation. Focus on reducing passive voice and improving sentence variety.".to_string(),
-        60..=69 => "Fair writing. Work on clarity by reducing glue words and varying sentence length.".to_string(),
-        _ => "Needs improvement. Focus on reducing passive voice, glue words, and improving readability.".to_string(),
-    }
-}
+// REMOVED DUPLICATE: get_style_score_message (already defined)
 
 fn get_sentence_length_message(avg_length: f64) -> String {
     if avg_length >= 15.0 && avg_length <= 20.0 {
@@ -1402,4 +1413,25 @@ impl IntoResponse for ApiError {
 
         (status, Json(body)).into_response()
     }
+}
+
+/// Helper to safely slice UTF-8 strings without panicking
+fn safe_slice(text: &str, start: usize, end: usize) -> &str {
+    if start >= text.len() || end > text.len() || start >= end {
+        return "";
+    }
+
+    let mut safe_start = start;
+    // Walk backwards to find the nearest valid char boundary
+    while !text.is_char_boundary(safe_start) && safe_start > 0 {
+        safe_start -= 1;
+    }
+
+    let mut safe_end = end;
+    // Walk forwards to find the nearest valid char boundary
+    while !text.is_char_boundary(safe_end) && safe_end < text.len() {
+        safe_end += 1;
+    }
+
+    &text[safe_start..safe_end]
 }
