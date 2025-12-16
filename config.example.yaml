@@ -1,0 +1,44 @@
+# Text Analyzer Configuration File
+# Copy this file and modify as needed
+
+# Input validation settings
+validation:
+  max_file_size_mb: 10          # Maximum file size in megabytes
+  min_words: 10                 # Minimum words required
+  max_words: null               # Maximum words allowed (null = no limit)
+  timeout_seconds: 300          # Timeout for analysis in seconds
+
+# Analysis settings
+analysis:
+  parallel_processing: true     # Enable parallel processing for large documents
+  cache_results: false          # Cache analysis results (experimental)
+  document_type: general        # Options: general, academic, fiction, business, technical
+
+# Threshold settings
+thresholds:
+  sticky_sentence_threshold: 40.0        # Percentage of glue words (default: 40%)
+  overused_word_threshold: 0.5           # Frequency threshold for overused words (%)
+  echo_distance: 20                      # Maximum distance for echo detection (words)
+  very_long_sentence: 30                 # Word count threshold for very long sentences
+  complex_paragraph_sentence_length: 20.0 # Avg sentence length for complex paragraphs
+  complex_paragraph_syllables: 1.8       # Avg syllables/word for complex paragraphs
+  passive_voice_max: 10                  # Maximum acceptable passive voice instances
+  adverb_max: 20                         # Maximum acceptable adverb count
+
+# Feature toggles
+features:
+  grammar_check: true           # Enable grammar checking
+  style_check: true             # Enable style analysis (passive voice, etc.)
+  readability_check: true       # Enable readability metrics
+  consistency_check: true       # Enable consistency checking
+  sensory_analysis: true        # Enable sensory word analysis
+  cliche_detection: true        # Enable cliché detection
+  jargon_detection: true        # Enable business jargon detection
+  echo_detection: true          # Enable echo/repetition detection
+
+# Output settings
+output:
+  format: text                  # Options: text, json, yaml, html
+  verbosity: normal             # Options: quiet, normal, verbose, debug
+  color: true                   # Enable colored output
+  show_progress: true           # Show progress indicators

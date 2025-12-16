@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Analyzer API - Web Client</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: #667eea;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .panel {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .panel h2 {
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .results {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .summary {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .summary-item strong {
+            color: #667eea;
+        }
+
+        .issue {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border-left: 4px solid;
+        }
+
+        .issue.PassiveVoice { border-color: #ff6b6b; }
+        .issue.Cliche { border-color: #ffd93d; }
+        .issue.VagueWord { border-color: #ff9f43; }
+        .issue.BusinessJargon { border-color: #a29bfe; }
+        .issue.OverusedWord { border-color: #fd79a8; }
+        .issue.Repetition { border-color: #fdcb6e; }
+        .issue.Grammar { border-color: #e17055; }
+
+        .issue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .issue-type {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .issue-position {
+            font-size: 12px;
+            color: #999;
+            font-family: 'Courier New', monospace;
+        }
+
+        .issue-text {
+            background: #f1f3f4;
+            padding: 8px;
+            border-radius: 3px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            color: #333;
+        }
+
+        .suggestions {
+            margin-top: 10px;
+        }
+
+        .suggestions p {
+            color: #666;
+            font-size: 14px;
+            margin: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .suggestions p:before {
+            content: '💡';
+            position: absolute;
+            left: 0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📝 Text Analyzer API</h1>
+            <p>Real-time text analysis with position tracking</p>
+        </header>
+
+        <div class="content">
+            <div class="panel">
+                <h2>Input Text</h2>
+                <textarea id="inputText" placeholder="Paste your text here...
+                
+Example: The comprehensive report was written by the team. At the end of the day, we need to synergize our efforts."></textarea>
+                <button id="analyzeBtn" onclick="analyzeText()">🔍 Analyze Text</button>
+            </div>
+
+            <div class="panel">
+                <h2>Analysis Results</h2>
+                <div id="results" class="results">
+                    <p style="color: #999; text-align: center; padding: 40px;">
+                        Enter text and click "Analyze Text" to see results
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:2000/analyze';
+
+        async function analyzeText() {
+            const input = document.getElementById('inputText').value.trim();
+            const resultsDiv = document.getElementById('results');
+            const button = document.getElementById('analyzeBtn');
+
+            if (!input) {
+                alert('Please enter some text to analyze');
+                return;
+            }
+
+            // Show loading
+            button.disabled = true;
+            resultsDiv.innerHTML = '<div class="loading">⏳ Analyzing...</div>';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: input })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                displayResults(data);
+
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="error">
+                        <strong>❌ Error:</strong> ${error.message}
+                        <br><br>
+                        Make sure the API server is running on http://localhost:2000
+                    </div>
+                `;
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            const { summary, issues } = data;
+
+            let html = `
+                <div class="summary">
+                    <h3>📊 Summary</h3>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <span>Total Issues:</span>
+                            <strong>${summary.total_issues}</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Style Score:</span>
+                            <strong>${summary.style_score}/100</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Words:</span>
+                            <strong>${summary.word_count}</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Sentences:</span>
+                            <strong>${summary.sentence_count}</strong>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (issues.length === 0) {
+                html += '<p style="text-align: center; color: #4caf50; padding: 20px;">✅ No issues found! Great writing!</p>';
+            } else {
+                // Group by type
+                const byType = {};
+                issues.forEach(issue => {
+                    const baseType = issue.type.split('_')[0];
+                    if (!byType[baseType]) {
+                        byType[baseType] = [];
+                    }
+                    byType[baseType].push(issue);
+                });
+
+                Object.entries(byType).forEach(([type, issueList]) => {
+                    issueList.forEach(issue => {
+                        html += `
+                            <div class="issue ${type}">
+                                <div class="issue-header">
+                                    <span class="issue-type">${issue.type}</span>
+                                    <span class="issue-position">${issue.start}:${issue.end}</span>
+                                </div>
+                                <div class="issue-text">"${issue.string}"</div>
+                                <div class="suggestions">
+                                    ${issue.suggestions.recommendation.map(s => `<p>${s}</p>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    });
+                });
+            }
+
+            resultsDiv.innerHTML = html;
+        }
+
+        // Allow Enter key to analyze
+        document.getElementById('inputText').addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                analyzeText();
+            }
+        });
+    </script>
+</body>
+</html>

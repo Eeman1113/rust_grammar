@@ -1,0 +1,35 @@
+# Sample Test Document
+
+This is a sample document for testing the text analyzer. It contains various types of sentences and grammatical constructs to test the analyzer's capabilities.
+
+## Introduction
+
+Dr. Smith and Prof. Johnson collaborated on this research. They discovered many interesting patterns in the data. The results were analyzed carefully by the team.
+
+## Method
+
+The experiment was conducted using standard protocols. Data was collected from 100 participants. Each participant was given a questionnaire. The responses were recorded and analyzed.
+
+## Results
+
+The findings indicate that there is a strong correlation between the variables. This correlation was found to be statistically significant (p < 0.05). The data was visualized using various charts and graphs.
+
+Some participants showed improvement, while others did not. This variability suggests that individual differences play an important role. Further research is needed to understand these differences.
+
+## Common Issues to Test
+
+### Abbreviations
+Dr. Smith works at MIT. Prof. Johnson earned her Ph.D. from Stanford. The U.S. economy grew by 3.14% last quarter.
+
+### Passive Voice
+The book was written by the author. Many theories were proposed. The experiment was designed carefully. Results were obtained after six months.
+
+### Subject-Verb Agreement
+He go to the store every day. They is coming later. The team are ready.
+
+### Complex Sentences
+Although the research was comprehensive and involved multiple methodologies, including both qualitative and quantitative approaches that were carefully designed to address the research questions, the results were somewhat inconclusive and require further investigation.
+
+## Conclusion
+
+This document serves as a test case for the analyzer. It includes various grammatical structures, punctuation patterns, and writing styles. The analyzer should detect issues and provide helpful feedback.
