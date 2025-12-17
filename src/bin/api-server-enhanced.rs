@@ -96,6 +96,7 @@ struct IndividualSentence {
     word_count: usize,
     #[serde(rename = "paragraphKey")]
     paragraph_key: String,
+    kind: String,
 }
 
 
@@ -477,7 +478,10 @@ async fn get_sentence_length(Json(payload): Json<SentenceLengthRequest>) -> Resu
 
     // Count overall stats
     let num_words = combined_text.split_whitespace().count();
-    let num_characters = combined_text.len();
+    
+    // Use CHARACTER count, not byte length
+    let character_array = combined_text.chars();
+    let num_characters = character_array.count();
 
     // Split into sentences for overall analysis
     let all_sentences = split_into_sentences(&combined_text);
@@ -543,44 +547,28 @@ async fn get_sentence_length(Json(payload): Json<SentenceLengthRequest>) -> Resu
     let mut individual_sentence_lengths = Vec::new();
 
     for paragraph in &payload.data {
-        let paragraph_sentences = split_into_sentences(&paragraph.text);
-        let mut current_pos = 0;
+        // Split sentences and track positions manually
+        let text = &paragraph.text;
+        let sentences = split_sentences_with_positions(text);
 
-        for sentence_text in paragraph_sentences {
-            // FIX: Ensure current_pos is a valid char boundary before slicing
-            while current_pos < paragraph.text.len() && !paragraph.text.is_char_boundary(current_pos) {
-                current_pos += 1;
-            }
+        for (sentence_text, start, end) in sentences {
+            let word_count = sentence_text.split_whitespace().count();
             
-            // Stop if we've reached the end
-            if current_pos >= paragraph.text.len() {
-                break;
-            }
+            // Use character-based length calculation
+            let char_length = sentence_text.chars().count();
+            
+            // Determine sentence kind based on word count
+            let kind = get_sentence_kind(word_count);
 
-            // Find the sentence in the paragraph text
-            if let Some(start) = paragraph.text[current_pos..].find(sentence_text.trim()) {
-                let actual_start = current_pos + start;
-                let end = actual_start + sentence_text.len();
-                let word_count = sentence_text.split_whitespace().count();
-
-                // FIX: Truncate string using chars to avoid slicing middle of multibyte chars
-                let display_string = if sentence_text.chars().count() > 50 {
-                    format!("{}...", sentence_text.chars().take(50).collect::<String>())
-                } else {
-                    sentence_text.clone()
-                };
-
-                individual_sentence_lengths.push(IndividualSentence {
-                    start: actual_start,
-                    end,
-                    length: end - actual_start,
-                    string: display_string,
-                    word_count,
-                    paragraph_key: paragraph.key.clone(),
-                });
-
-                current_pos = end;
-            }
+            individual_sentence_lengths.push(IndividualSentence {
+                start,
+                end,
+                length: char_length,
+                string: sentence_text.clone(),
+                word_count,
+                paragraph_key: paragraph.key.clone(),
+                kind,
+            });
         }
     }
 
@@ -765,36 +753,49 @@ fn calculate_comprehensive_scores(
     // Calculate individual sentence details with positions
     let sentences = split_into_sentences(text);
     let mut individual_lengths = Vec::new();
-    let mut current_pos = 0;
+    
+    // Convert text to character array for accurate Unicode indexing
+    let text_chars: Vec<char> = text.chars().collect();
+    let mut char_pos = 0;
     
     for sentence in &sentences {
-        // FIX: Ensure current_pos is valid char boundary
-        while current_pos < text.len() && !text.is_char_boundary(current_pos) {
-            current_pos += 1;
+        let sentence_trimmed = sentence.trim();
+        let sentence_chars: Vec<char> = sentence_trimmed.chars().collect();
+        
+        // Find sentence in character array
+        let mut found = false;
+        for i in char_pos..text_chars.len() {
+            if i + sentence_chars.len() <= text_chars.len() {
+                let slice: Vec<char> = text_chars[i..i + sentence_chars.len()].to_vec();
+                if slice == sentence_chars {
+                    let start = i;
+                    let end = i + sentence_chars.len();
+                    let char_length = sentence_chars.len();
+                    let word_count_val = sentence.split_whitespace().count();
+                    
+                    individual_lengths.push(SentenceOccurrence {
+                        start,
+                        end,
+                        length: char_length,
+                        string: if sentence.len() > 50 {
+                            sentence.chars().take(50).collect::<String>() + "..."
+                        } else {
+                            sentence.clone()
+                        },
+                        word_count: word_count_val,
+                        paragraph_key: format!("{}", estimate_paragraph(text, start)),
+                    });
+                    
+                    char_pos = end;
+                    found = true;
+                    break;
+                }
+            }
         }
-        if current_pos >= text.len() { break; }
-
-        // Find sentence in text
-        if let Some(pos) = text[current_pos..].find(sentence.trim()) {
-            let start = current_pos + pos;
-            let end = start + sentence.trim().len();
-            let word_count_val = sentence.split_whitespace().count();
-            
-            individual_lengths.push(SentenceOccurrence {
-                start,
-                end,
-                length: end - start,
-                // FIX: Truncate string using chars for safety
-                string: if sentence.chars().count() > 50 {
-                    sentence.chars().take(50).collect::<String>() + "..."
-                } else {
-                    sentence.clone()
-                },
-                word_count: word_count_val,
-                paragraph_key: format!("{}", estimate_paragraph(text, start)),
-            });
-            
-            current_pos = end;
+        
+        // If not found with exact match, skip to next sentence
+        if !found {
+            char_pos += sentence.chars().count();
         }
     }
     
@@ -833,7 +834,7 @@ fn calculate_comprehensive_scores(
         style_score: ScoreDetail {
             score: full_report.style_score,
             percentage: full_report.style_score as f64,
-            message: Some(get_style_score_message(full_report.style_score)),
+            message: Some(get_style_message(full_report.style_score)),
         },
         
         style_guide_compliance: ScoreDetail {
@@ -1072,13 +1073,12 @@ fn convert_to_issues(
 }
 
 // Helper functions
-fn get_style_score_message(score: i32) -> String {
+fn get_style_message(score: i32) -> String {
     match score {
-        90..=100 => "Excellent! Your writing style is clear, engaging, and professional.".to_string(),
-        80..=89 => "Great work! Your writing is strong with minor areas for improvement.".to_string(),
-        70..=79 => "Good foundation. Focus on reducing passive voice and improving sentence variety.".to_string(),
-        60..=69 => "Fair writing. Work on clarity by reducing glue words and varying sentence length.".to_string(),
-        _ => "Needs improvement. Focus on reducing passive voice, glue words, and improving readability.".to_string(),
+        90..=100 => "Excellent writing!".to_string(),
+        80..=89 => "Good writing with minor improvements needed".to_string(),
+        70..=79 => "Adequate writing, could be improved".to_string(),
+        _ => "Needs significant improvement".to_string(),
     }
 }
 
@@ -1170,7 +1170,7 @@ fn count_syllables(word: &str) -> usize {
     let mut previous_was_vowel = false;
     let chars: Vec<char> = word.chars().collect();
     
-    for (_i, ch) in chars.iter().enumerate() {
+    for (i, ch) in chars.iter().enumerate() {
         let is_vowel = vowels.contains(&ch.to_lowercase().next().unwrap_or(' '));
         
         if is_vowel && !previous_was_vowel {
@@ -1224,8 +1224,7 @@ fn analyze_dialogue(text: &str) -> ((f64, usize, usize), (f64, usize, usize), (f
 }
 
 fn extract_text(text: &str, start: usize, end: usize) -> String {
-    // FIX: Use the safe_slice helper to handle byte indices correctly
-    safe_slice(text, start, end).to_string()
+    text.chars().skip(start).take(end - start).collect()
 }
 
 fn estimate_paragraph(text: &str, position: usize) -> usize {
@@ -1259,8 +1258,100 @@ fn split_into_sentences(text: &str) -> Vec<String> {
     sentences
 }
 
+// Helper function to determine sentence kind based on word count
+fn get_sentence_kind(word_count: usize) -> String {
+    match word_count {
+        0..=9 => "under10".to_string(),
+        10..=19 => "range10to19".to_string(),
+        20..=29 => "range20to29".to_string(),
+        30..=39 => "range30to39".to_string(),
+        _ => "over40".to_string(),
+    }
+}
+
+fn split_sentences_with_positions(text: &str) -> Vec<(String, usize, usize)> {
+    use regex::Regex;
+    
+    let mut sentences = Vec::new();
+    
+    // Convert entire text to character array - THIS IS CRITICAL FOR UNICODE
+    let text_chars: Vec<char> = text.chars().collect();
+    let total_chars = text_chars.len();
+    
+    // Match sentence endings: ., !, or ?
+    let sentence_pattern = Regex::new(r"[.!?]").unwrap();
+    
+    let mut char_position = 0;
+    
+    // Find all punctuation marks
+    let text_string: String = text_chars.iter().collect();
+    
+    for mat in sentence_pattern.find_iter(&text_string) {
+        // Convert byte position to character position
+        let punct_byte_pos = mat.start();
+        let punct_char_pos = text[..punct_byte_pos].chars().count();
+        
+        // Sentence goes from char_position to after the punctuation
+        let sentence_start = char_position;
+        let sentence_end = punct_char_pos + 1; // Include the punctuation mark
+        
+        if sentence_end <= total_chars && sentence_start < sentence_end {
+            // Extract sentence using CHARACTER positions
+            let sentence_chars: Vec<char> = text_chars[sentence_start..sentence_end].to_vec();
+            let sentence_text: String = sentence_chars.iter().collect();
+            
+            if !sentence_text.trim().is_empty() {
+                // Calculate length using CHARACTER count
+                let character_array = sentence_text.chars();
+                let length = character_array.count();
+                
+                // Push with character-based positions
+                sentences.push((
+                    sentence_text,
+                    sentence_start,
+                    sentence_start + length
+                ));
+            }
+        }
+        
+        // Move to next sentence - skip whitespace
+        char_position = sentence_end;
+        while char_position < total_chars && text_chars[char_position].is_whitespace() {
+            char_position += 1;
+        }
+    }
+    
+    // Handle any remaining text (text without ending punctuation)
+    if char_position < total_chars {
+        let remaining_chars: Vec<char> = text_chars[char_position..].to_vec();
+        let remaining_text: String = remaining_chars.iter().collect();
+        
+        if !remaining_text.trim().is_empty() {
+            // Calculate length using CHARACTER count
+            let character_array = remaining_text.chars();
+            let length = character_array.count();
+            
+            sentences.push((
+                remaining_text,
+                char_position,
+                char_position + length
+            ));
+        }
+    }
+    
+    sentences
+}
+
 // Message helper functions for /score endpoint
-// REMOVED DUPLICATE: get_style_score_message (already defined)
+fn get_style_score_message(score: i32) -> String {
+    match score {
+        90..=100 => "Excellent! Your writing style is clear, engaging, and professional.".to_string(),
+        80..=89 => "Great work! Your writing is strong with minor areas for improvement.".to_string(),
+        70..=79 => "Good foundation. Focus on reducing passive voice and improving sentence variety.".to_string(),
+        60..=69 => "Fair writing. Work on clarity by reducing glue words and varying sentence length.".to_string(),
+        _ => "Needs improvement. Focus on reducing passive voice, glue words, and improving readability.".to_string(),
+    }
+}
 
 fn get_sentence_length_message(avg_length: f64) -> String {
     if avg_length >= 15.0 && avg_length <= 20.0 {
@@ -1413,25 +1504,4 @@ impl IntoResponse for ApiError {
 
         (status, Json(body)).into_response()
     }
-}
-
-/// Helper to safely slice UTF-8 strings without panicking
-fn safe_slice(text: &str, start: usize, end: usize) -> &str {
-    if start >= text.len() || end > text.len() || start >= end {
-        return "";
-    }
-
-    let mut safe_start = start;
-    // Walk backwards to find the nearest valid char boundary
-    while !text.is_char_boundary(safe_start) && safe_start > 0 {
-        safe_start -= 1;
-    }
-
-    let mut safe_end = end;
-    // Walk forwards to find the nearest valid char boundary
-    while !text.is_char_boundary(safe_end) && safe_end < text.len() {
-        safe_end += 1;
-    }
-
-    &text[safe_start..safe_end]
 }
