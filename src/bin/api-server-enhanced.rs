@@ -65,6 +65,8 @@ struct SentenceLengthResponse {
     num_characters: usize,
     #[serde(rename = "avgSentenceLength")]
     avg_sentence_length: f64,
+    #[serde(rename = "longestSentenceLength")]
+    longest_sentence_length: usize,
     #[serde(rename = "targetRange")]
     target_range: String,
     #[serde(rename = "sentenceVariety")]
@@ -503,6 +505,9 @@ async fn get_sentence_length(Json(payload): Json<SentenceLengthRequest>) -> Resu
         })
         .sum::<f64>() / sentence_word_counts.len() as f64;
     let sentence_variety = (variance.sqrt() * 100.0).round() / 100.0;
+    
+    // Find the longest sentence (by word count)
+    let longest_sentence_length = sentence_word_counts.iter().max().copied().unwrap_or(0);
 
     // Count sentences by word count
     let mut under10 = 0;
@@ -579,6 +584,7 @@ async fn get_sentence_length(Json(payload): Json<SentenceLengthRequest>) -> Resu
         num_words,
         num_characters,
         avg_sentence_length,
+        longest_sentence_length,
         target_range: "11 to 18".to_string(),
         sentence_variety,
         variety_target: "over 3".to_string(),
