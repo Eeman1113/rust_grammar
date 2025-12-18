@@ -68,10 +68,10 @@ impl Default for ValidationConfig {
 impl ValidationConfig {
     /// Validate input text according to configuration
     pub fn validate_text(&self, text: &str) -> Result<()> {
-        // Check if empty
-        if text.trim().is_empty() {
-            return Err(AnalysisError::EmptyInput);
-        }
+        // Check if empty - removed to allow any content
+        // if text.trim().is_empty() {
+        //     return Err(AnalysisError::EmptyInput);
+        // }
 
         // Check file size
         let size = text.len() as u64;
@@ -82,18 +82,20 @@ impl ValidationConfig {
             });
         }
 
-        // Check word count
+        // Check word count - REMOVED minimum word validation
+        // Now accepts any word count, even 0
         let word_count = text
             .split_whitespace()
             .filter(|w| !w.is_empty())
             .count();
 
-        if word_count < self.min_words {
-            return Err(AnalysisError::DocumentTooShort {
-                words: word_count,
-                min: self.min_words,
-            });
-        }
+        // Removed: minimum word count check
+        // if word_count < self.min_words {
+        //     return Err(AnalysisError::DocumentTooShort {
+        //         words: word_count,
+        //         min: self.min_words,
+        //     });
+        // }
 
         if let Some(max) = self.max_words {
             if word_count > max {

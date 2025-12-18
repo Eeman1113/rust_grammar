@@ -736,8 +736,18 @@ struct StickySentence {
 async fn get_readability(
     Json(payload): Json<SentenceLengthRequest>,
 ) -> Result<Json<ReadabilityResponse>, ApiError> {
+    // Work with whatever is given - no validation
     if payload.data.is_empty() {
-        return Err(ApiError::EmptyText);
+        // Return default response instead of error
+        return Ok(Json(ReadabilityResponse {
+            estimated_reading_time: "0 min, 0 sec".to_string(),
+            message: "No content to analyze.".to_string(),
+            flesch_reading_ease: 0.0,
+            flesch_kincaid_grade: 0.0,
+            coleman_liau: 0.0,
+            automated_readability_index: 0.0,
+            difficult_paragraphs: Vec::new(),
+        }));
     }
 
     // Combine all texts for overall metrics
@@ -746,8 +756,17 @@ async fn get_readability(
         .collect::<Vec<&str>>()
         .join(" ");
 
+    // Work with empty text too - just return default results
     if combined_text.trim().is_empty() {
-        return Err(ApiError::EmptyText);
+        return Ok(Json(ReadabilityResponse {
+            estimated_reading_time: "0 min, 0 sec".to_string(),
+            message: "No content to analyze.".to_string(),
+            flesch_reading_ease: 0.0,
+            flesch_kincaid_grade: 0.0,
+            coleman_liau: 0.0,
+            automated_readability_index: 0.0,
+            difficult_paragraphs: Vec::new(),
+        }));
     }
 
     let config = Config::default();
@@ -856,8 +875,21 @@ async fn get_readability(
 async fn get_passive_voice(
     Json(payload): Json<SentenceLengthRequest>,
 ) -> Result<Json<PassiveVoiceResponse>, ApiError> {
+    // Work with whatever is given - no validation
     if payload.data.is_empty() {
-        return Err(ApiError::EmptyText);
+        // Return empty response instead of error
+        return Ok(Json(PassiveVoiceResponse {
+            passive_verbs_found: 0,
+            passive_verbs: Vec::new(),
+            hidden_verbs: Vec::new(),
+            adverbs_in_dialogue: 0,
+            adverbs_outside_dialogue: 0,
+            adverbs_list: Vec::new(),
+            readability_enhancements: Vec::new(),
+            passive_index: 0.0,
+            passive_index_target: "up to 25".to_string(),
+            repeated_sentence_starts: Vec::new(),
+        }));
     }
 
     // Combine all texts for overall analysis
@@ -866,8 +898,20 @@ async fn get_passive_voice(
         .collect::<Vec<&str>>()
         .join(" ");
 
+    // Work with empty text too - just return empty results
     if combined_text.trim().is_empty() {
-        return Err(ApiError::EmptyText);
+        return Ok(Json(PassiveVoiceResponse {
+            passive_verbs_found: 0,
+            passive_verbs: Vec::new(),
+            hidden_verbs: Vec::new(),
+            adverbs_in_dialogue: 0,
+            adverbs_outside_dialogue: 0,
+            adverbs_list: Vec::new(),
+            readability_enhancements: Vec::new(),
+            passive_index: 0.0,
+            passive_index_target: "up to 25".to_string(),
+            repeated_sentence_starts: Vec::new(),
+        }));
     }
 
     let config = Config::default();
@@ -974,8 +1018,15 @@ async fn get_passive_voice(
 async fn get_glue_index(
     Json(payload): Json<SentenceLengthRequest>,
 ) -> Result<Json<GlueIndexResponse>, ApiError> {
+    // Work with whatever is given - no validation
     if payload.data.is_empty() {
-        return Err(ApiError::EmptyText);
+        // Return empty response instead of error
+        return Ok(Json(GlueIndexResponse {
+            glue_index: 0.0,
+            glue_index_target: "up to 40%".to_string(),
+            sticky_sentences: Vec::new(),
+            semi_sticky_sentences: Vec::new(),
+        }));
     }
 
     // Combine all texts for overall glue index
@@ -984,8 +1035,14 @@ async fn get_glue_index(
         .collect::<Vec<&str>>()
         .join(" ");
 
+    // Work with empty text too - just return empty results
     if combined_text.trim().is_empty() {
-        return Err(ApiError::EmptyText);
+        return Ok(Json(GlueIndexResponse {
+            glue_index: 0.0,
+            glue_index_target: "up to 40%".to_string(),
+            sticky_sentences: Vec::new(),
+            semi_sticky_sentences: Vec::new(),
+        }));
     }
 
     let config = Config::default();
