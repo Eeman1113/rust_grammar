@@ -616,6 +616,7 @@ async fn get_sentence_length(Json(payload): Json<SentenceLengthRequest>) -> Resu
 struct ReadabilityResponse {
     #[serde(rename = "estimatedReadingTime")]
     estimated_reading_time: String,
+    message: String,
     #[serde(rename = "fleschReadingEase")]
     flesch_reading_ease: f64,
     #[serde(rename = "fleschKincaidGrade")]
@@ -815,12 +816,36 @@ async fn get_readability(
         }
     }
 
+    // Round scores to 2 decimal places
+    let flesch_ease = (readability.flesch_reading_ease * 100.0).round() / 100.0;
+    let flesch_grade = (readability.flesch_kincaid_grade * 100.0).round() / 100.0;
+    let coleman = (readability.smog_index.unwrap_or(0.0) * 100.0).round() / 100.0;
+    let ari = (readability.avg_words_per_sentence * 100.0).round() / 100.0;
+
+    // Generate intelligent message based on Flesch Reading Ease score
+    let message = if flesch_ease >= 90.0 {
+        "Excellent! Your document is very easy to read - perfect for a wide audience.".to_string()
+    } else if flesch_ease >= 80.0 {
+        "Great! Your document is easy to read and accessible to most readers.".to_string()
+    } else if flesch_ease >= 70.0 {
+        "Good! Your document is fairly easy to read - suitable for general audiences.".to_string()
+    } else if flesch_ease >= 60.0 {
+        "Your document has standard readability - appropriate for most audiences.".to_string()
+    } else if flesch_ease >= 50.0 {
+        "Your document is fairly difficult to read. Consider simplifying for broader audiences.".to_string()
+    } else if flesch_ease >= 30.0 {
+        "Your document is difficult to read. Consider breaking up complex sentences and using simpler words.".to_string()
+    } else {
+        "Your document is very difficult to read. Significant simplification recommended for better accessibility.".to_string()
+    };
+
     let response = ReadabilityResponse {
         estimated_reading_time,
-        flesch_reading_ease: readability.flesch_reading_ease,
-        flesch_kincaid_grade: readability.flesch_kincaid_grade,
-        coleman_liau: readability.smog_index.unwrap_or(0.0),  // Using SMOG index with default
-        automated_readability_index: readability.avg_words_per_sentence,  // Using avg words as substitute
+        message,
+        flesch_reading_ease: flesch_ease,
+        flesch_kincaid_grade: flesch_grade,
+        coleman_liau: coleman,
+        automated_readability_index: ari,
         difficult_paragraphs,
     };
 
