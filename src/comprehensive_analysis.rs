@@ -39,6 +39,7 @@ impl<'a> ComprehensiveAnalyzer<'a> {
     // ========== FEATURE 1: STICKY SENTENCES ==========
     pub fn analyze_sticky_sentences(&self) -> Result<StickySentencesReport> {
         let mut sticky_sentences = Vec::new();
+        let mut semi_sticky_sentences = Vec::new();
         let mut total_glue = 0;
         let total_words = self.words.len();
         
@@ -62,8 +63,9 @@ impl<'a> ComprehensiveAnalyzer<'a> {
             let glue_count = words.iter().filter(|w| GLUE_WORDS.contains(w.as_str())).count();
             let glue_percentage = (glue_count as f64 / words.len() as f64) * 100.0;
 
-            if glue_percentage > 40.0 {
-                // Safely truncate at character boundary, not byte boundary
+            // Categorize: >45% = sticky, 35-45% = semi-sticky
+            if glue_percentage > 45.0 {
+                // Sticky sentence
                 let truncated = if sentence.chars().count() > 100 {
                     let truncated: String = sentence.chars().take(100).collect();
                     format!("{}...", truncated)
@@ -72,6 +74,23 @@ impl<'a> ComprehensiveAnalyzer<'a> {
                 };
 
                 sticky_sentences.push(StickySentence {
+                    sentence_num: i + 1,
+                    glue_percentage: (glue_percentage * 10.0).round() / 10.0,
+                    sentence: truncated,
+                    start_index: sentence_start,
+                    end_index: sentence_end,
+                    length: sentence.len(),
+                });
+            } else if glue_percentage >= 35.0 && glue_percentage <= 45.0 {
+                // Semi-sticky sentence
+                let truncated = if sentence.chars().count() > 100 {
+                    let truncated: String = sentence.chars().take(100).collect();
+                    format!("{}...", truncated)
+                } else {
+                    sentence.clone()
+                };
+
+                semi_sticky_sentences.push(StickySentence {
                     sentence_num: i + 1,
                     glue_percentage: (glue_percentage * 10.0).round() / 10.0,
                     sentence: truncated,
@@ -97,10 +116,14 @@ impl<'a> ComprehensiveAnalyzer<'a> {
             0.0
         };
 
+        let glue_index_rounded = (overall_glue_index * 10.0).round() / 10.0;
+
         Ok(StickySentencesReport {
-            overall_glue_index: (overall_glue_index * 10.0).round() / 10.0,
+            overall_glue_index: glue_index_rounded,
+            glue_index: glue_index_rounded,  // Alias for backward compatibility
             sticky_sentence_count: sticky_sentences.len(),
             sticky_sentences,
+            semi_sticky_sentences,
         })
     }
 

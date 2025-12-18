@@ -16,8 +16,10 @@ pub struct StickySentence {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StickySentencesReport {
     pub overall_glue_index: f64,
+    pub glue_index: f64,  // Alias for overall_glue_index for backward compatibility
     pub sticky_sentence_count: usize,
     pub sticky_sentences: Vec<StickySentence>,
+    pub semi_sticky_sentences: Vec<StickySentence>,  // Sentences with 35-45% glue words
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

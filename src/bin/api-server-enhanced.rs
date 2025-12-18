@@ -21,6 +21,9 @@ async fn main() {
         .route("/analyze", post(analyze_text))
         .route("/score", post(get_scores_only))
         .route("/sentencelength", post(get_sentence_length))
+        .route("/readability", post(get_readability))
+        .route("/passivevoice", post(get_passive_voice))
+        .route("/glueindex", post(get_glue_index))
         .layer(CorsLayer::permissive());
 
     // Bind to 0.0.0.0:2000
@@ -29,6 +32,9 @@ async fn main() {
     println!("📝 POST to http://{}/analyze with JSON body: {{\"text\": \"your text\"}}", addr);
     println!("📊 POST to http://{}/score for scores only", addr);
     println!("📏 POST to http://{}/sentencelength for sentence length analysis", addr);
+    println!("📖 POST to http://{}/readability for readability analysis", addr);
+    println!("🎯 POST to http://{}/passivevoice for passive voice analysis", addr);
+    println!("🔗 POST to http://{}/glueindex for glue index analysis", addr);
 
     // Start server
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
@@ -599,6 +605,493 @@ async fn get_sentence_length(Json(payload): Json<SentenceLengthRequest>) -> Resu
     };
 
     Ok(Json(response))
+}
+
+// ============================================================================
+// NEW ENDPOINTS: /readability, /passivevoice, /glueindex
+// ============================================================================
+
+// Response structures for new endpoints
+#[derive(Debug, Serialize)]
+struct ReadabilityResponse {
+    #[serde(rename = "estimatedReadingTime")]
+    estimated_reading_time: String,
+    #[serde(rename = "fleschReadingEase")]
+    flesch_reading_ease: f64,
+    #[serde(rename = "fleschKincaidGrade")]
+    flesch_kincaid_grade: f64,
+    #[serde(rename = "colemanLiau")]
+    coleman_liau: f64,
+    #[serde(rename = "automatedReadabilityIndex")]
+    automated_readability_index: f64,
+    #[serde(rename = "difficultParagraphs")]
+    difficult_paragraphs: Vec<DifficultParagraph>,
+}
+
+#[derive(Debug, Serialize)]
+struct DifficultParagraph {
+    difficulty: String,  // "very hard", "slightly difficult", etc.
+    start: usize,  // Relative to paragraph
+    end: usize,    // Relative to paragraph
+    string: String,
+    excerpt: String,  // First ~50 chars for display
+    #[serde(rename = "paragraphKey")]
+    paragraph_key: String,
+}
+
+#[derive(Debug, Serialize)]
+struct PassiveVoiceResponse {
+    #[serde(rename = "passiveVerbsFound")]
+    passive_verbs_found: usize,
+    #[serde(rename = "passiveVerbs")]
+    passive_verbs: Vec<PassiveVerbOccurrence>,
+    #[serde(rename = "hiddenVerbs")]
+    hidden_verbs: Vec<HiddenVerbOccurrence>,
+    #[serde(rename = "adverbsInDialogue")]
+    adverbs_in_dialogue: usize,
+    #[serde(rename = "adverbsOutsideDialogue")]
+    adverbs_outside_dialogue: usize,
+    #[serde(rename = "adverbsList")]
+    adverbs_list: Vec<AdverbOccurrence>,
+    #[serde(rename = "readabilityEnhancements")]
+    readability_enhancements: Vec<EnhancementOccurrence>,
+    #[serde(rename = "passiveIndex")]
+    passive_index: f64,
+    #[serde(rename = "passiveIndexTarget")]
+    passive_index_target: String,
+    #[serde(rename = "repeatedSentenceStarts")]
+    repeated_sentence_starts: Vec<RepeatedStart>,
+}
+
+#[derive(Debug, Serialize)]
+struct PassiveVerbOccurrence {
+    verb: String,
+    count: usize,
+    occurrences: Vec<OccurrenceDetail>,
+}
+
+#[derive(Debug, Serialize)]
+struct HiddenVerbOccurrence {
+    phrase: String,
+    count: usize,
+    occurrences: Vec<OccurrenceDetail>,
+}
+
+#[derive(Debug, Serialize)]
+struct AdverbOccurrence {
+    adverb: String,
+    count: usize,
+    occurrences: Vec<OccurrenceDetail>,
+}
+
+#[derive(Debug, Serialize)]
+struct EnhancementOccurrence {
+    phrase: String,
+    count: usize,
+    occurrences: Vec<OccurrenceDetail>,
+}
+
+#[derive(Debug, Serialize)]
+struct RepeatedStart {
+    start_word: String,
+    count: usize,
+    sentences: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct OccurrenceDetail {
+    start: usize,  // Relative to paragraph
+    end: usize,    // Relative to paragraph
+    string: String,
+    #[serde(rename = "paragraphKey")]
+    paragraph_key: String,
+}
+
+#[derive(Debug, Serialize)]
+struct GlueIndexResponse {
+    #[serde(rename = "glueIndex")]
+    glue_index: f64,
+    #[serde(rename = "glueIndexTarget")]
+    glue_index_target: String,
+    #[serde(rename = "stickySentences")]
+    sticky_sentences: Vec<StickySentence>,
+    #[serde(rename = "semiStickySentences")]
+    semi_sticky_sentences: Vec<StickySentence>,
+}
+
+#[derive(Debug, Serialize)]
+struct StickySentence {
+    start: usize,  // Relative to paragraph
+    end: usize,    // Relative to paragraph
+    string: String,
+    excerpt: String,
+    #[serde(rename = "gluePercentage")]
+    glue_percentage: f64,
+    #[serde(rename = "paragraphKey")]
+    paragraph_key: String,
+}
+
+// Handler for /readability endpoint
+async fn get_readability(
+    Json(payload): Json<SentenceLengthRequest>,
+) -> Result<Json<ReadabilityResponse>, ApiError> {
+    if payload.data.is_empty() {
+        return Err(ApiError::EmptyText);
+    }
+
+    // Combine all texts for overall metrics
+    let combined_text: String = payload.data.iter()
+        .map(|p| p.text.as_str())
+        .collect::<Vec<&str>>()
+        .join(" ");
+
+    if combined_text.trim().is_empty() {
+        return Err(ApiError::EmptyText);
+    }
+
+    let config = Config::default();
+    let analyzer = TextAnalyzer::new(combined_text.clone(), config)
+        .map_err(|e| ApiError::AnalysisError(e.to_string()))?;
+
+    let stats = analyzer.statistics();
+    let readability = analyzer.readability_metrics()
+        .map_err(|e| ApiError::AnalysisError(e.to_string()))?;
+
+    // Calculate estimated reading time (assuming 200 words per minute)
+    let minutes = stats.word_count / 200;
+    let seconds = (stats.word_count % 200) * 60 / 200;
+    let estimated_reading_time = format!("{} min, {} sec", minutes, seconds);
+
+    // Analyze each paragraph for difficulty
+    let mut difficult_paragraphs = Vec::new();
+
+    for paragraph in &payload.data {
+        let text = &paragraph.text;
+        
+        if text.trim().is_empty() {
+            continue;
+        }
+
+        // Simple heuristic: paragraphs with average word length > 6 and sentence length > 25
+        let words: Vec<&str> = text.split_whitespace().collect();
+        let avg_word_len = if !words.is_empty() {
+            words.iter().map(|w| w.len()).sum::<usize>() as f64 / words.len() as f64
+        } else {
+            0.0
+        };
+
+        let sentences = text.split(&['.', '!', '?'][..]).filter(|s| !s.trim().is_empty()).count().max(1);
+        let avg_sentence_len = words.len() as f64 / sentences as f64;
+
+        let difficulty = if avg_word_len > 6.5 && avg_sentence_len > 30.0 {
+            Some("very hard")
+        } else if avg_word_len > 5.5 && avg_sentence_len > 25.0 {
+            Some("hard")
+        } else if avg_sentence_len > 20.0 {
+            Some("slightly difficult")
+        } else {
+            None
+        };
+
+        if let Some(diff) = difficulty {
+            // Use character-based length
+            let character_array = text.chars();
+            let text_char_len = character_array.count();
+            
+            let excerpt = if text_char_len > 50 {
+                text.chars().take(50).collect::<String>() + "..."
+            } else {
+                text.to_string()
+            };
+
+            difficult_paragraphs.push(DifficultParagraph {
+                difficulty: diff.to_string(),
+                start: 0,
+                end: text_char_len,
+                string: text.to_string(),
+                excerpt,
+                paragraph_key: paragraph.key.clone(),
+            });
+        }
+    }
+
+    let response = ReadabilityResponse {
+        estimated_reading_time,
+        flesch_reading_ease: readability.flesch_reading_ease,
+        flesch_kincaid_grade: readability.flesch_kincaid_grade,
+        coleman_liau: readability.smog_index.unwrap_or(0.0),  // Using SMOG index with default
+        automated_readability_index: readability.avg_words_per_sentence,  // Using avg words as substitute
+        difficult_paragraphs,
+    };
+
+    Ok(Json(response))
+}
+
+// Handler for /passivevoice endpoint
+async fn get_passive_voice(
+    Json(payload): Json<SentenceLengthRequest>,
+) -> Result<Json<PassiveVoiceResponse>, ApiError> {
+    if payload.data.is_empty() {
+        return Err(ApiError::EmptyText);
+    }
+
+    // Combine all texts for overall analysis
+    let combined_text: String = payload.data.iter()
+        .map(|p| p.text.as_str())
+        .collect::<Vec<&str>>()
+        .join(" ");
+
+    if combined_text.trim().is_empty() {
+        return Err(ApiError::EmptyText);
+    }
+
+    let config = Config::default();
+    let analyzer = TextAnalyzer::new(combined_text.clone(), config)
+        .map_err(|e| ApiError::AnalysisError(e.to_string()))?;
+
+    let stats = analyzer.statistics();
+    let sentence_count = stats.sentence_count.max(1);
+
+    // Process each paragraph to find passive voice with paragraph-relative positions
+    let mut all_passive_verbs: Vec<(String, String, usize, usize, String)> = Vec::new(); // (verb, key, start, end, string)
+
+    for paragraph in &payload.data {
+        let text = &paragraph.text;
+        
+        if text.trim().is_empty() {
+            continue;
+        }
+
+        // Analyze this paragraph
+        let para_config = Config::default();
+        let para_analyzer = TextAnalyzer::new(text.clone(), para_config)
+            .map_err(|e| ApiError::AnalysisError(e.to_string()))?;
+
+        let passive_matches = para_analyzer.detect_passive_voice()
+            .map_err(|e| ApiError::AnalysisError(e.to_string()))?;
+
+        // Convert to character-based positions relative to paragraph
+        for pv in passive_matches {
+            // Find nearest valid character boundaries
+            let safe_start = find_char_boundary(text, pv.start_index);
+            let safe_end = find_char_boundary(text, pv.end_index);
+            
+            // Convert byte positions to character positions
+            let char_start = text[..safe_start].chars().count();
+            let char_end = text[..safe_end].chars().count();
+            let text_chars: Vec<char> = text.chars().collect();
+            
+            // Safely extract substring
+            let string: String = if char_end <= text_chars.len() {
+                text_chars[char_start..char_end].iter().collect()
+            } else {
+                text_chars[char_start..].iter().collect()
+            };
+
+            all_passive_verbs.push((
+                pv.text.clone(),
+                paragraph.key.clone(),
+                char_start,
+                char_end,
+                string,
+            ));
+        }
+    }
+
+    // Group by verb phrase
+    let mut passive_verb_map: std::collections::HashMap<String, Vec<(String, usize, usize, String)>> = 
+        std::collections::HashMap::new();
+    
+    for (verb, key, start, end, string) in all_passive_verbs {
+        passive_verb_map.entry(verb).or_insert_with(Vec::new).push((key, start, end, string));
+    }
+
+    let mut passive_verbs = Vec::new();
+    let total_passive_count = passive_verb_map.values().map(|v| v.len()).sum::<usize>();
+
+    for (verb, occurrences_list) in passive_verb_map {
+        let occurrences: Vec<OccurrenceDetail> = occurrences_list.into_iter().map(|(key, start, end, string)| {
+            OccurrenceDetail {
+                start,
+                end,
+                string,
+                paragraph_key: key,
+            }
+        }).collect();
+
+        passive_verbs.push(PassiveVerbOccurrence {
+            verb,
+            count: occurrences.len(),
+            occurrences,
+        });
+    }
+
+    // Calculate passive index
+    let passive_index = (total_passive_count as f64 * 100.0 / sentence_count as f64 * 10.0).round() / 10.0;
+
+    let response = PassiveVoiceResponse {
+        passive_verbs_found: total_passive_count,
+        passive_verbs,
+        hidden_verbs: Vec::new(), // TODO: Implement hidden verb detection
+        adverbs_in_dialogue: 0, // TODO: Implement dialogue detection
+        adverbs_outside_dialogue: 0, // TODO: Implement adverb detection
+        adverbs_list: Vec::new(),
+        readability_enhancements: Vec::new(), // TODO: Implement
+        passive_index,
+        passive_index_target: "up to 25".to_string(),
+        repeated_sentence_starts: Vec::new(), // TODO: Implement
+    };
+
+    Ok(Json(response))
+}
+
+// Handler for /glueindex endpoint
+async fn get_glue_index(
+    Json(payload): Json<SentenceLengthRequest>,
+) -> Result<Json<GlueIndexResponse>, ApiError> {
+    if payload.data.is_empty() {
+        return Err(ApiError::EmptyText);
+    }
+
+    // Combine all texts for overall glue index
+    let combined_text: String = payload.data.iter()
+        .map(|p| p.text.as_str())
+        .collect::<Vec<&str>>()
+        .join(" ");
+
+    if combined_text.trim().is_empty() {
+        return Err(ApiError::EmptyText);
+    }
+
+    let config = Config::default();
+    let analyzer = TextAnalyzer::new(combined_text.clone(), config)
+        .map_err(|e| ApiError::AnalysisError(e.to_string()))?;
+
+    let full_report = analyzer.generate_full_report()
+        .map_err(|e| ApiError::AnalysisError(e.to_string()))?;
+
+    // Calculate overall glue index - now using glue_index field directly
+    let glue_index = (full_report.sticky_sentences.glue_index * 10.0).round() / 10.0;
+
+    // Process each paragraph to find sticky/semi-sticky sentences with paragraph-relative positions
+    let mut all_sticky_sentences = Vec::new();
+    let mut all_semi_sticky_sentences = Vec::new();
+
+    for paragraph in &payload.data {
+        let text = &paragraph.text;
+        
+        if text.trim().is_empty() {
+            continue;
+        }
+
+        // Analyze this paragraph
+        let para_config = Config::default();
+        let para_analyzer = TextAnalyzer::new(text.clone(), para_config)
+            .map_err(|e| ApiError::AnalysisError(e.to_string()))?;
+
+        let para_report = para_analyzer.generate_full_report()
+            .map_err(|e| ApiError::AnalysisError(e.to_string()))?;
+
+        // Process sticky sentences - now using fields directly from struct
+        for s in para_report.sticky_sentences.sticky_sentences {
+            // Find nearest valid character boundaries
+            let safe_start = find_char_boundary(text, s.start_index);
+            let safe_end = find_char_boundary(text, s.end_index);
+            
+            // Convert byte positions to character positions
+            let char_start = text[..safe_start].chars().count();
+            let char_end = text[..safe_end].chars().count();
+            let text_chars: Vec<char> = text.chars().collect();
+            
+            // Safely extract substring
+            let string: String = if char_end <= text_chars.len() {
+                text_chars[char_start..char_end].iter().collect()
+            } else {
+                text_chars[char_start..].iter().collect()
+            };
+            
+            let char_length = string.chars().count();
+            let excerpt = if char_length > 50 {
+                string.chars().take(50).collect::<String>() + "..."
+            } else {
+                string.clone()
+            };
+
+            all_sticky_sentences.push(StickySentence {
+                start: char_start,
+                end: char_end,
+                string,
+                excerpt,
+                glue_percentage: s.glue_percentage,
+                paragraph_key: paragraph.key.clone(),
+            });
+        }
+
+        // Process semi-sticky sentences - now using field directly from struct
+        for s in para_report.sticky_sentences.semi_sticky_sentences {
+            // Find nearest valid character boundaries
+            let safe_start = find_char_boundary(text, s.start_index);
+            let safe_end = find_char_boundary(text, s.end_index);
+            
+            // Convert byte positions to character positions
+            let char_start = text[..safe_start].chars().count();
+            let char_end = text[..safe_end].chars().count();
+            let text_chars: Vec<char> = text.chars().collect();
+            
+            // Safely extract substring
+            let string: String = if char_end <= text_chars.len() {
+                text_chars[char_start..char_end].iter().collect()
+            } else {
+                text_chars[char_start..].iter().collect()
+            };
+            
+            let char_length = string.chars().count();
+            let excerpt = if char_length > 50 {
+                string.chars().take(50).collect::<String>() + "..."
+            } else {
+                string.clone()
+            };
+
+            all_semi_sticky_sentences.push(StickySentence {
+                start: char_start,
+                end: char_end,
+                string,
+                excerpt,
+                glue_percentage: s.glue_percentage,
+                paragraph_key: paragraph.key.clone(),
+            });
+        }
+    }
+
+    let response = GlueIndexResponse {
+        glue_index,
+        glue_index_target: "up to 40%".to_string(),
+        sticky_sentences: all_sticky_sentences,
+        semi_sticky_sentences: all_semi_sticky_sentences,
+    };
+
+    Ok(Json(response))
+}
+
+// Helper function to find the nearest valid character boundary
+fn find_char_boundary(text: &str, byte_index: usize) -> usize {
+    if byte_index >= text.len() {
+        return text.len();
+    }
+    
+    // If already at a char boundary, return it
+    if text.is_char_boundary(byte_index) {
+        return byte_index;
+    }
+    
+    // Search backwards for the nearest char boundary
+    for i in (0..=byte_index).rev() {
+        if text.is_char_boundary(i) {
+            return i;
+        }
+    }
+    
+    0
 }
 
 // Create user-friendly scores with ideal values and quality messages
@@ -1176,7 +1669,7 @@ fn count_syllables(word: &str) -> usize {
     let mut previous_was_vowel = false;
     let chars: Vec<char> = word.chars().collect();
     
-    for (i, ch) in chars.iter().enumerate() {
+    for ch in chars.iter() {
         let is_vowel = vowels.contains(&ch.to_lowercase().next().unwrap_or(' '));
         
         if is_vowel && !previous_was_vowel {
