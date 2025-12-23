@@ -644,24 +644,64 @@ struct DifficultParagraph {
 struct PassiveVoiceResponse {
     #[serde(rename = "passiveVerbsFound")]
     passive_verbs_found: usize,
+    #[serde(rename = "passiveVerbsMessage")]
+    passive_verbs_message: String,
     #[serde(rename = "passiveVerbs")]
     passive_verbs: Vec<PassiveVerbOccurrence>,
+    #[serde(rename = "hiddenVerbsFound")]
+    hidden_verbs_found: usize,
+    #[serde(rename = "hiddenVerbsMessage")]
+    hidden_verbs_message: String,
     #[serde(rename = "hiddenVerbs")]
     hidden_verbs: Vec<HiddenVerbOccurrence>,
     #[serde(rename = "adverbsInDialogue")]
     adverbs_in_dialogue: usize,
     #[serde(rename = "adverbsOutsideDialogue")]
     adverbs_outside_dialogue: usize,
+    #[serde(rename = "adverbsMessage")]
+    adverbs_message: String,
     #[serde(rename = "adverbsList")]
     adverbs_list: Vec<AdverbOccurrence>,
+    #[serde(rename = "readabilityEnhancementsFound")]
+    readability_enhancements_found: usize,
+    #[serde(rename = "readabilityEnhancementsMessage")]
+    readability_enhancements_message: String,
     #[serde(rename = "readabilityEnhancements")]
     readability_enhancements: Vec<EnhancementOccurrence>,
+    #[serde(rename = "inclusiveLanguageMessage")]
+    inclusive_language_message: String,
+    #[serde(rename = "inclusiveLanguageImprovements")]
+    inclusive_language_improvements: Vec<EnhancementOccurrence>,
+    #[serde(rename = "emotionTellsMessage")]
+    emotion_tells_message: String,
+    #[serde(rename = "emotionTells")]
+    emotion_tells: Vec<EnhancementOccurrence>,
+    #[serde(rename = "styleImprovementsMessage")]
+    style_improvements_message: String,
+    #[serde(rename = "styleImprovements")]
+    style_improvements: Vec<EnhancementOccurrence>,
+    #[serde(rename = "businessJargonMessage")]
+    business_jargon_message: String,
+    #[serde(rename = "businessJargon")]
+    business_jargon: Vec<EnhancementOccurrence>,
+    #[serde(rename = "longSubordinateClausesMessage")]
+    long_subordinate_clauses_message: String,
+    #[serde(rename = "longSubordinateClauses")]
+    long_subordinate_clauses: Vec<EnhancementOccurrence>,
     #[serde(rename = "passiveIndex")]
     passive_index: f64,
+    #[serde(rename = "passiveIndexMessage")]
+    passive_index_message: String,
     #[serde(rename = "passiveIndexTarget")]
     passive_index_target: String,
+    #[serde(rename = "repeatedSentenceStartsMessage")]
+    repeated_sentence_starts_message: String,
     #[serde(rename = "repeatedSentenceStarts")]
     repeated_sentence_starts: Vec<RepeatedStart>,
+    #[serde(rename = "styleGuideItemsMessage")]
+    style_guide_items_message: String,
+    #[serde(rename = "styleGuideItems")]
+    style_guide_items: Vec<EnhancementOccurrence>,
 }
 
 #[derive(Debug, Serialize)]
@@ -706,6 +746,7 @@ struct OccurrenceDetail {
     string: String,
     #[serde(rename = "paragraphKey")]
     paragraph_key: String,
+    report: String,  // Which report this belongs to
 }
 
 #[derive(Debug, Serialize)]
@@ -714,10 +755,8 @@ struct GlueIndexResponse {
     glue_index: f64,
     #[serde(rename = "glueIndexTarget")]
     glue_index_target: String,
-    #[serde(rename = "stickySentences")]
-    sticky_sentences: Vec<StickySentence>,
-    #[serde(rename = "semiStickySentences")]
-    semi_sticky_sentences: Vec<StickySentence>,
+    #[serde(rename = "sentences")]
+    sentences: Vec<StickySentence>,
 }
 
 #[derive(Debug, Serialize)]
@@ -728,6 +767,7 @@ struct StickySentence {
     excerpt: String,
     #[serde(rename = "gluePercentage")]
     glue_percentage: f64,
+    category: String,  // "sticky" or "semi-sticky"
     #[serde(rename = "paragraphKey")]
     paragraph_key: String,
 }
@@ -880,15 +920,35 @@ async fn get_passive_voice(
         // Return empty response instead of error
         return Ok(Json(PassiveVoiceResponse {
             passive_verbs_found: 0,
+            passive_verbs_message: "No content to analyze.".to_string(),
             passive_verbs: Vec::new(),
+            hidden_verbs_found: 0,
+            hidden_verbs_message: "No content to analyze.".to_string(),
             hidden_verbs: Vec::new(),
             adverbs_in_dialogue: 0,
             adverbs_outside_dialogue: 0,
+            adverbs_message: "No content to analyze.".to_string(),
             adverbs_list: Vec::new(),
+            readability_enhancements_found: 0,
+            readability_enhancements_message: "No content to analyze.".to_string(),
             readability_enhancements: Vec::new(),
+            inclusive_language_message: "No content to analyze.".to_string(),
+            inclusive_language_improvements: Vec::new(),
+            emotion_tells_message: "No content to analyze.".to_string(),
+            emotion_tells: Vec::new(),
+            style_improvements_message: "No content to analyze.".to_string(),
+            style_improvements: Vec::new(),
+            business_jargon_message: "No content to analyze.".to_string(),
+            business_jargon: Vec::new(),
+            long_subordinate_clauses_message: "No content to analyze.".to_string(),
+            long_subordinate_clauses: Vec::new(),
             passive_index: 0.0,
+            passive_index_message: "No content to analyze.".to_string(),
             passive_index_target: "up to 25".to_string(),
+            repeated_sentence_starts_message: "No content to analyze.".to_string(),
             repeated_sentence_starts: Vec::new(),
+            style_guide_items_message: "No content to analyze.".to_string(),
+            style_guide_items: Vec::new(),
         }));
     }
 
@@ -902,15 +962,35 @@ async fn get_passive_voice(
     if combined_text.trim().is_empty() {
         return Ok(Json(PassiveVoiceResponse {
             passive_verbs_found: 0,
+            passive_verbs_message: "No content to analyze.".to_string(),
             passive_verbs: Vec::new(),
+            hidden_verbs_found: 0,
+            hidden_verbs_message: "No content to analyze.".to_string(),
             hidden_verbs: Vec::new(),
             adverbs_in_dialogue: 0,
             adverbs_outside_dialogue: 0,
+            adverbs_message: "No content to analyze.".to_string(),
             adverbs_list: Vec::new(),
+            readability_enhancements_found: 0,
+            readability_enhancements_message: "No content to analyze.".to_string(),
             readability_enhancements: Vec::new(),
+            inclusive_language_message: "No content to analyze.".to_string(),
+            inclusive_language_improvements: Vec::new(),
+            emotion_tells_message: "No content to analyze.".to_string(),
+            emotion_tells: Vec::new(),
+            style_improvements_message: "No content to analyze.".to_string(),
+            style_improvements: Vec::new(),
+            business_jargon_message: "No content to analyze.".to_string(),
+            business_jargon: Vec::new(),
+            long_subordinate_clauses_message: "No content to analyze.".to_string(),
+            long_subordinate_clauses: Vec::new(),
             passive_index: 0.0,
+            passive_index_message: "No content to analyze.".to_string(),
             passive_index_target: "up to 25".to_string(),
+            repeated_sentence_starts_message: "No content to analyze.".to_string(),
             repeated_sentence_starts: Vec::new(),
+            style_guide_items_message: "No content to analyze.".to_string(),
+            style_guide_items: Vec::new(),
         }));
     }
 
@@ -985,6 +1065,7 @@ async fn get_passive_voice(
                 end,
                 string,
                 paragraph_key: key,
+                report: "passiveVerbs".to_string(),
             }
         }).collect();
 
@@ -998,17 +1079,722 @@ async fn get_passive_voice(
     // Calculate passive index
     let passive_index = (total_passive_count as f64 * 100.0 / sentence_count as f64 * 10.0).round() / 10.0;
 
+    // Get full report for additional analysis
+    let full_report = analyzer.generate_full_report()
+        .map_err(|e| ApiError::AnalysisError(e.to_string()))?;
+
+    // ========== 1. HIDDEN VERBS (Nominalizations) ==========
+    let hidden_verb_patterns = vec![
+        ("make a decision", "decide"), ("take action", "act"),
+        ("give consideration", "consider"), ("make an assumption", "assume"),
+        ("have a discussion", "discuss"), ("make a payment", "pay"),
+        ("The illusion of", "illusion"), ("The idea of", "idea"),
+        ("The concept of", "concept"), ("The notion of", "notion"),
+        ("implementation of", "implement"), ("creation of", "create"),
+        ("utilization of", "utilize"), ("examination of", "examine"),
+    ];
+    
+    let mut hidden_verbs_map: std::collections::HashMap<String, Vec<(String, usize, usize, String)>> = 
+        std::collections::HashMap::new();
+    
+    for paragraph in &payload.data {
+        let text = &paragraph.text;
+        let text_lower = text.to_lowercase();
+        
+        for (pattern, _replacement) in &hidden_verb_patterns {
+            let pattern_lower = pattern.to_lowercase();
+            let mut start_pos = 0;
+            
+            while let Some(pos) = text_lower[start_pos..].find(&pattern_lower) {
+                let actual_pos = start_pos + pos;
+                let end_pos = actual_pos + pattern.chars().count();  // ✅ FIXED: Use .chars().count()
+                
+                let safe_start = find_char_boundary(text, actual_pos);
+                let safe_end = find_char_boundary(text, end_pos);
+                
+                let char_start = text[..safe_start].chars().count();
+                let char_end = text[..safe_end].chars().count();
+                let text_chars: Vec<char> = text.chars().collect();
+                
+                let string: String = if char_end <= text_chars.len() {
+                    text_chars[char_start..char_end].iter().collect()
+                } else {
+                    text_chars[char_start..].iter().collect()
+                };
+                
+                hidden_verbs_map.entry(pattern.to_string())
+                    .or_insert_with(Vec::new)
+                    .push((paragraph.key.clone(), char_start, char_end, string));
+                
+                start_pos = end_pos;
+            }
+        }
+    }
+    
+    let hidden_verbs: Vec<HiddenVerbOccurrence> = hidden_verbs_map.into_iter().map(|(phrase, occurrences_list)| {
+        let occurrences: Vec<OccurrenceDetail> = occurrences_list.into_iter().map(|(key, start, end, string)| {
+            OccurrenceDetail { start, end, string, paragraph_key: key, report: "hiddenVerbs".to_string() }
+        }).collect();
+        
+        HiddenVerbOccurrence {
+            phrase,
+            count: occurrences.len(),
+            occurrences,
+        }
+    }).collect();
+    
+    let hidden_verbs_found = hidden_verbs.iter().map(|h| h.count).sum();
+
+    // ========== 2. ADVERBS ==========
+    let adverb_patterns = vec![
+        "meticulously", "profoundly", "slightly", "potentially", "ultimately",
+        "repeatedly", "fully", "strangely", "subtly", "primarily", "increasingly",
+        "quickly", "slowly", "carefully", "barely", "certainly", "definitely",
+        "easily", "hardly", "really", "simply", "basically", "literally",
+        "actually", "suddenly", "immediately", "completely", "absolutely",
+        "extremely", "very", "quite", "rather", "fairly", "pretty",
+    ];
+    
+    let mut adverbs_map: std::collections::HashMap<String, Vec<(String, usize, usize, String)>> = 
+        std::collections::HashMap::new();
+    
+    for paragraph in &payload.data {
+        let text = &paragraph.text;
+        let text_lower = text.to_lowercase();
+        
+        for pattern in &adverb_patterns {
+            let pattern_lower = pattern.to_lowercase();
+            let mut start_pos = 0;
+            
+            while let Some(pos) = text_lower[start_pos..].find(&pattern_lower) {
+                let actual_pos = start_pos + pos;
+                let end_pos = actual_pos + pattern.chars().count();  // ✅ FIXED: Use .chars().count()
+                
+                // Check if it's a whole word (not part of another word)
+                let is_word_start = actual_pos == 0 || 
+                    text_lower.chars().nth(actual_pos - 1).map_or(false, |c| !c.is_alphabetic());
+                let is_word_end = end_pos >= text_lower.chars().count() ||  // ✅ FIXED: Use .chars().count()
+                    text_lower.chars().nth(end_pos).map_or(false, |c| !c.is_alphabetic());
+                
+                if is_word_start && is_word_end {
+                    let safe_start = find_char_boundary(text, actual_pos);
+                    let safe_end = find_char_boundary(text, end_pos);
+                    
+                    // Convert to character positions
+                    let char_start = text[..safe_start].chars().count();
+                    let char_end = text[..safe_end].chars().count();
+                    let text_chars: Vec<char> = text.chars().collect();
+                    
+                    // Extract the actual string
+                    let string: String = if char_end <= text_chars.len() {
+                        text_chars[char_start..char_end].iter().collect()
+                    } else {
+                        text_chars[char_start..].iter().collect()
+                    };
+                    
+                    adverbs_map.entry(pattern_lower.clone())
+                        .or_insert_with(Vec::new)
+                        .push((paragraph.key.clone(), char_start, char_end, string));
+                }
+                
+                start_pos = actual_pos + 1;
+            }
+        }
+    }
+    
+    let adverbs_list: Vec<AdverbOccurrence> = adverbs_map.into_iter().map(|(adverb, occurrences_list)| {
+        let occurrences: Vec<OccurrenceDetail> = occurrences_list.into_iter().map(|(key, start, end, string)| {
+            OccurrenceDetail { start, end, string, paragraph_key: key, report: "adverbs".to_string() }
+        }).collect();
+        
+        AdverbOccurrence {
+            adverb,
+            count: occurrences.len(),
+            occurrences,
+        }
+    }).collect();
+    
+    let adverbs_outside_dialogue = adverbs_list.iter().map(|a| a.count).sum();
+
+    // ========== 3. READABILITY ENHANCEMENTS ==========
+    let readability_patterns = vec![
+        "is one of", "are one of", "was one of", "were one of",
+        "there is", "there are", "there was", "there were",
+        "it is", "it was", "this is", "that is",
+        "becomes particularly", "seems particularly", "appears particularly",
+        "in order to", "due to the fact", "at this point in time",
+    ];
+    
+    let mut readability_map: std::collections::HashMap<String, Vec<(String, usize, usize, String)>> = 
+        std::collections::HashMap::new();
+    
+    for paragraph in &payload.data {
+        let text = &paragraph.text;
+        let text_lower = text.to_lowercase();
+        
+        for pattern in &readability_patterns {
+            let pattern_lower = pattern.to_lowercase();
+            let mut start_pos = 0;
+            
+            while let Some(pos) = text_lower[start_pos..].find(&pattern_lower) {
+                let actual_pos = start_pos + pos;
+                let end_pos = actual_pos + pattern.chars().count();  // ✅ FIXED: Use .chars().count()
+                
+                let safe_start = find_char_boundary(text, actual_pos);
+                let safe_end = find_char_boundary(text, end_pos);
+                
+                let char_start = text[..safe_start].chars().count();
+                let char_end = text[..safe_end].chars().count();
+                let text_chars: Vec<char> = text.chars().collect();
+                
+                let string: String = if char_end <= text_chars.len() {
+                    text_chars[char_start..char_end].iter().collect()
+                } else {
+                    text_chars[char_start..].iter().collect()
+                };
+                
+                readability_map.entry(pattern.to_string())
+                    .or_insert_with(Vec::new)
+                    .push((paragraph.key.clone(), char_start, char_end, string));
+                
+                start_pos = end_pos;
+            }
+        }
+    }
+    
+    let readability_enhancements: Vec<EnhancementOccurrence> = readability_map.into_iter().map(|(phrase, occurrences_list)| {
+        let occurrences: Vec<OccurrenceDetail> = occurrences_list.into_iter().map(|(key, start, end, string)| {
+            OccurrenceDetail { start, end, string, paragraph_key: key, report: "readabilityEnhancements".to_string() }
+        }).collect();
+        
+        EnhancementOccurrence {
+            phrase,
+            count: occurrences.len(),
+            occurrences,
+        }
+    }).collect();
+    
+    let readability_enhancements_found = readability_enhancements.iter().map(|r| r.count).sum();
+
+    // ========== 4. INCLUSIVE LANGUAGE ==========
+    let inclusive_patterns = vec![
+        ("he or she", "they"), ("his or her", "their"), ("him or her", "them"),
+        ("mankind", "humankind"), ("manpower", "workforce"), ("man-made", "artificial"),
+        ("policeman", "police officer"), ("fireman", "firefighter"),
+        ("chairman", "chairperson"), ("businessman", "businessperson"),
+    ];
+    
+    let mut inclusive_map: std::collections::HashMap<String, Vec<(String, usize, usize, String)>> = 
+        std::collections::HashMap::new();
+    
+    for paragraph in &payload.data {
+        let text = &paragraph.text;
+        let text_lower = text.to_lowercase();
+        
+        for (pattern, _suggestion) in &inclusive_patterns {
+            let pattern_lower = pattern.to_lowercase();
+            let mut start_pos = 0;
+            
+            while let Some(pos) = text_lower[start_pos..].find(&pattern_lower) {
+                let actual_pos = start_pos + pos;
+                let end_pos = actual_pos + pattern.chars().count();  // ✅ FIXED: Use .chars().count()
+                
+                let safe_start = find_char_boundary(text, actual_pos);
+                let safe_end = find_char_boundary(text, end_pos);
+                
+                let char_start = text[..safe_start].chars().count();
+                let char_end = text[..safe_end].chars().count();
+                let text_chars: Vec<char> = text.chars().collect();
+                
+                let string: String = if char_end <= text_chars.len() {
+                    text_chars[char_start..char_end].iter().collect()
+                } else {
+                    text_chars[char_start..].iter().collect()
+                };
+                
+                inclusive_map.entry(pattern.to_string())
+                    .or_insert_with(Vec::new)
+                    .push((paragraph.key.clone(), char_start, char_end, string));
+                
+                start_pos = end_pos;
+            }
+        }
+    }
+    
+    let inclusive_language_improvements: Vec<EnhancementOccurrence> = inclusive_map.into_iter().map(|(phrase, occurrences_list)| {
+        let occurrences: Vec<OccurrenceDetail> = occurrences_list.into_iter().map(|(key, start, end, string)| {
+            OccurrenceDetail { start, end, string, paragraph_key: key, report: "inclusiveLanguage".to_string() }
+        }).collect();
+        
+        EnhancementOccurrence {
+            phrase,
+            count: occurrences.len(),
+            occurrences,
+        }
+    }).collect();
+
+    // ========== 5. EMOTION TELLS ==========
+    let emotion_tell_words = vec![
+        "felt", "seemed", "appeared", "looked", "sounded",
+        "realized", "thought", "knew", "understood", "wondered",
+        "decided", "noticed", "saw", "heard", "smelled",
+    ];
+    
+    let mut emotion_map: std::collections::HashMap<String, Vec<(String, usize, usize, String)>> = 
+        std::collections::HashMap::new();
+    
+    for paragraph in &payload.data {
+        let text = &paragraph.text;
+        let text_lower = text.to_lowercase();
+        
+        for pattern in &emotion_tell_words {
+            let pattern_lower = pattern.to_lowercase();
+            let mut start_pos = 0;
+            
+            while let Some(pos) = text_lower[start_pos..].find(&pattern_lower) {
+                let actual_pos = start_pos + pos;
+                let end_pos = actual_pos + pattern.chars().count();  // ✅ FIXED: Use .chars().count()
+                
+                // Check if it's a whole word (not part of another word)
+                let is_word_start = actual_pos == 0 || 
+                    text_lower.chars().nth(actual_pos - 1).map_or(false, |c| !c.is_alphabetic());
+                let is_word_end = end_pos >= text_lower.chars().count() ||  // ✅ FIXED: Use .chars().count()
+                    text_lower.chars().nth(end_pos).map_or(false, |c| !c.is_alphabetic());
+                
+                if is_word_start && is_word_end {
+                    let safe_start = find_char_boundary(text, actual_pos);
+                    let safe_end = find_char_boundary(text, end_pos);
+                    
+                    // Convert to character positions
+                    let char_start = text[..safe_start].chars().count();
+                    let char_end = text[..safe_end].chars().count();
+                    let text_chars: Vec<char> = text.chars().collect();
+                    
+                    // Extract the actual string
+                    let string: String = if char_end <= text_chars.len() {
+                        text_chars[char_start..char_end].iter().collect()
+                    } else {
+                        text_chars[char_start..].iter().collect()
+                    };
+                    
+                    emotion_map.entry(pattern_lower.clone())
+                        .or_insert_with(Vec::new)
+                        .push((paragraph.key.clone(), char_start, char_end, string));
+                }
+                
+                start_pos = actual_pos + 1;
+            }
+        }
+    }
+    
+    let emotion_tells: Vec<EnhancementOccurrence> = emotion_map.into_iter().map(|(phrase, occurrences_list)| {
+        let occurrences: Vec<OccurrenceDetail> = occurrences_list.into_iter().map(|(key, start, end, string)| {
+            OccurrenceDetail { start, end, string, paragraph_key: key, report: "emotionTells".to_string() }
+        }).collect();
+        
+        EnhancementOccurrence {
+            phrase,
+            count: occurrences.len(),
+            occurrences,
+        }
+    }).collect();
+
+    // ========== 6. STYLE IMPROVEMENTS ==========
+    let style_patterns = vec![
+        "very", "really", "just", "actually", "basically", "literally",
+        "quite", "rather", "somewhat", "pretty", "kind of", "sort of",
+    ];
+    
+    let mut style_map: std::collections::HashMap<String, Vec<(String, usize, usize, String)>> = 
+        std::collections::HashMap::new();
+    
+    for paragraph in &payload.data {
+        let text = &paragraph.text;
+        let text_lower = text.to_lowercase();
+        
+        for pattern in &style_patterns {
+            let pattern_lower = pattern.to_lowercase();
+            let mut start_pos = 0;
+            
+            while let Some(pos) = text_lower[start_pos..].find(&pattern_lower) {
+                let actual_pos = start_pos + pos;
+                let end_pos = actual_pos + pattern.len();
+                
+                // Convert to character positions for boundary checking
+                let char_pos_start = text[..actual_pos].chars().count();
+                let char_pos_end = text[..end_pos.min(text.len())].chars().count();
+                let text_chars: Vec<char> = text.chars().collect();
+                
+                // Check if it's a whole word using character positions
+                let is_word_start = char_pos_start == 0 || 
+                    (char_pos_start > 0 && !text_chars[char_pos_start - 1].is_alphabetic());
+                let is_word_end = char_pos_end >= text_chars.len() || 
+                    !text_chars[char_pos_end].is_alphabetic();
+                
+                if is_word_start && is_word_end {
+                    let safe_start = find_char_boundary(text, actual_pos);
+                    let safe_end = find_char_boundary(text, end_pos);
+                    
+                    let char_start = text[..safe_start].chars().count();
+                    let char_end = text[..safe_end].chars().count();
+                    
+                    let string: String = if char_end <= text_chars.len() {
+                        text_chars[char_start..char_end].iter().collect()
+                    } else {
+                        text_chars[char_start..].iter().collect()
+                    };
+                    
+                    style_map.entry(pattern.to_string())
+                        .or_insert_with(Vec::new)
+                        .push((paragraph.key.clone(), char_start, char_end, string));
+                }
+                
+                start_pos = actual_pos + 1;
+            }
+        }
+    }
+    
+    let style_improvements: Vec<EnhancementOccurrence> = style_map.into_iter().map(|(phrase, occurrences_list)| {
+        let occurrences: Vec<OccurrenceDetail> = occurrences_list.into_iter().map(|(key, start, end, string)| {
+            OccurrenceDetail { start, end, string, paragraph_key: key, report: "styleImprovements".to_string() }
+        }).collect();
+        
+        EnhancementOccurrence {
+            phrase,
+            count: occurrences.len(),
+            occurrences,
+        }
+    }).collect();
+
+    // ========== 7. LONG SUBORDINATE CLAUSES ==========
+    // Detect sentences with many commas (indicator of complex clauses)
+    let mut long_clauses: Vec<EnhancementOccurrence> = Vec::new();
+    
+    for paragraph in &payload.data {
+        let text = &paragraph.text;
+        let text_chars: Vec<char> = text.chars().collect();
+        let text_len = text_chars.len();
+        
+        let mut current_pos = 0;
+        
+        while current_pos < text_len {
+            // Find the next sentence ending
+            let mut sentence_end = current_pos;
+            let mut found_delimiter = false;
+            
+            for i in current_pos..text_len {
+                if text_chars[i] == '.' || text_chars[i] == '!' || text_chars[i] == '?' {
+                    sentence_end = i + 1; // Include the delimiter
+                    found_delimiter = true;
+                    break;
+                }
+            }
+            
+            // If no delimiter found, take rest of text
+            if !found_delimiter {
+                sentence_end = text_len;
+            }
+            
+            // Extract sentence
+            let sentence_chars: Vec<char> = text_chars[current_pos..sentence_end].iter().cloned().collect();
+            let sentence: String = sentence_chars.iter().collect();
+            let sentence_trimmed = sentence.trim();
+            
+            if !sentence_trimmed.is_empty() {
+                let comma_count = sentence.matches(',').count();
+                
+                if comma_count >= 3 {
+                    let sentence_char_count = sentence_chars.len();
+                    let excerpt = if sentence_char_count > 50 {
+                        sentence_chars.iter().take(50).collect::<String>() + "..."
+                    } else {
+                        sentence.clone()
+                    };
+                    
+                    long_clauses.push(EnhancementOccurrence {
+                        phrase: format!("Complex sentence with {} commas", comma_count),
+                        count: 1,
+                        occurrences: vec![OccurrenceDetail {
+                            start: current_pos,
+                            end: sentence_end,  // Now includes the punctuation
+                            string: excerpt,
+                            paragraph_key: paragraph.key.clone(),
+                            report: "longSubordinateClauses".to_string(),
+                        }],
+                    });
+                }
+            }
+            
+            current_pos = sentence_end;
+        }
+    }
+
+    // ========== 8. REPEATED SENTENCE STARTS ==========
+    let mut sentence_starts: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+    
+    for paragraph in &payload.data {
+        let text = &paragraph.text;
+        let sentences: Vec<&str> = text.split(&['.', '!', '?'][..])
+            .filter(|s| !s.trim().is_empty())
+            .collect();
+        
+        for sentence in sentences {
+            let trimmed = sentence.trim();
+            if let Some(first_word) = trimmed.split_whitespace().next() {
+                let first_word_clean = first_word.trim_matches(|c: char| !c.is_alphabetic()).to_lowercase();
+                
+                if first_word_clean.len() > 2 {  // Ignore very short words
+                    sentence_starts.entry(first_word_clean)
+                        .or_insert_with(Vec::new)
+                        .push(trimmed.chars().take(50).collect::<String>());
+                }
+            }
+        }
+    }
+    
+    let repeated_sentence_starts: Vec<RepeatedStart> = sentence_starts.into_iter()
+        .filter(|(_, sentences)| sentences.len() > 2)  // Only if repeated 3+ times
+        .map(|(start_word, sentences)| RepeatedStart {
+            start_word,
+            count: sentences.len(),
+            sentences,
+        })
+        .collect();
+
+    // ========== 9. BUSINESS JARGON ==========
+    let business_jargon_items: Vec<EnhancementOccurrence> = full_report.business_jargon.jargon_list
+        .into_iter()
+        .map(|item| EnhancementOccurrence {
+            phrase: item.jargon.clone(),
+            count: item.count,
+            occurrences: Vec::new(),
+        })
+        .collect();
+
+    // ========== 10. STYLE GUIDE ITEMS ==========
+    let style_guide_patterns = vec![
+        ("alot", "a lot"), ("awhile", "a while"), ("irregardless", "regardless"),
+        ("could of", "could have"), ("should of", "should have"),
+        ("for all intensive purposes", "for all intents and purposes"),
+    ];
+    
+    let mut style_guide_map: std::collections::HashMap<String, Vec<(String, usize, usize, String)>> = 
+        std::collections::HashMap::new();
+    
+    for paragraph in &payload.data {
+        let text = &paragraph.text;
+        let text_lower = text.to_lowercase();
+        
+        for (pattern, _correction) in &style_guide_patterns {
+            let pattern_lower = pattern.to_lowercase();
+            let mut start_pos = 0;
+            
+            while let Some(pos) = text_lower[start_pos..].find(&pattern_lower) {
+                let actual_pos = start_pos + pos;
+                let end_pos = actual_pos + pattern.chars().count();  // ✅ FIXED: Use .chars().count()
+                
+                let safe_start = find_char_boundary(text, actual_pos);
+                let safe_end = find_char_boundary(text, end_pos);
+                
+                let char_start = text[..safe_start].chars().count();
+                let char_end = text[..safe_end].chars().count();
+                let text_chars: Vec<char> = text.chars().collect();
+                
+                let string: String = if char_end <= text_chars.len() {
+                    text_chars[char_start..char_end].iter().collect()
+                } else {
+                    text_chars[char_start..].iter().collect()
+                };
+                
+                style_guide_map.entry(pattern.to_string())
+                    .or_insert_with(Vec::new)
+                    .push((paragraph.key.clone(), char_start, char_end, string));
+                
+                start_pos = end_pos;
+            }
+        }
+    }
+    
+    let style_guide_items: Vec<EnhancementOccurrence> = style_guide_map.into_iter().map(|(phrase, occurrences_list)| {
+        let occurrences: Vec<OccurrenceDetail> = occurrences_list.into_iter().map(|(key, start, end, string)| {
+            OccurrenceDetail { start, end, string, paragraph_key: key, report: "styleGuideItems".to_string() }
+        }).collect();
+        
+        EnhancementOccurrence {
+            phrase,
+            count: occurrences.len(),
+            occurrences,
+        }
+    }).collect();
+
+    // ========== GENERATE INTELLIGENT MESSAGES ==========
+    
+    // Passive Verbs Message
+    let passive_verbs_message = if total_passive_count == 0 {
+        "Excellent! No passive voice found.".to_string()
+    } else if total_passive_count <= 2 {
+        format!("{} passive verb{} found. Consider revising for stronger, more direct writing.", 
+            total_passive_count, if total_passive_count == 1 { "" } else { "s" })
+    } else if total_passive_count <= 5 {
+        format!("{} passive verbs found. Try to use active voice where possible for clearer, more engaging prose.", total_passive_count)
+    } else {
+        format!("{} passive verbs found. High usage detected - revise to strengthen your writing with active voice.", total_passive_count)
+    };
+    
+    // Hidden Verbs Message
+    let hidden_verbs_message = if hidden_verbs_found == 0 {
+        "No hidden verbs found.".to_string()
+    } else if hidden_verbs_found == 1 {
+        "1 hidden verb (nominalization) found. Consider using the direct verb form instead.".to_string()
+    } else {
+        format!("{} hidden verbs (nominalizations) found. Replace weak verb + noun constructions with stronger direct verbs.", hidden_verbs_found)
+    };
+    
+    // Adverbs Message
+    let adverbs_message = if adverbs_outside_dialogue == 0 {
+        "No adverbs found outside dialogue.".to_string()
+    } else if adverbs_outside_dialogue <= 5 {
+        format!("{} adverb{} found outside dialogue. Use sparingly.", 
+            adverbs_outside_dialogue, if adverbs_outside_dialogue == 1 { "" } else { "s" })
+    } else if adverbs_outside_dialogue <= 15 {
+        format!("{} adverbs found outside dialogue. Consider reducing - use stronger verbs instead of adverb + weak verb combinations.", adverbs_outside_dialogue)
+    } else {
+        format!("{} adverbs found outside dialogue. High usage detected - replace with stronger verbs for more impactful writing.", adverbs_outside_dialogue)
+    };
+    
+    // Readability Enhancements Message
+    let readability_enhancements_message = if readability_enhancements_found == 0 {
+        "No weak constructions found.".to_string()
+    } else if readability_enhancements_found <= 3 {
+        format!("{} weak construction{} found. Consider revising for clarity.", 
+            readability_enhancements_found, if readability_enhancements_found == 1 { "" } else { "s" })
+    } else if readability_enhancements_found <= 10 {
+        format!("{} weak constructions found. Remove 'there is/are' and 'it was/is' constructions for stronger prose.", readability_enhancements_found)
+    } else {
+        format!("{} weak constructions found. High usage - revise extensively for clearer, more direct writing.", readability_enhancements_found)
+    };
+    
+    // Inclusive Language Message
+    let inclusive_count = inclusive_language_improvements.len();
+    let inclusive_language_message = if inclusive_count == 0 {
+        "No non-inclusive language detected.".to_string()
+    } else if inclusive_count == 1 {
+        "1 instance of gendered/non-inclusive language found. Consider using gender-neutral alternatives.".to_string()
+    } else {
+        format!("{} instances of gendered/non-inclusive language found. Update to gender-neutral alternatives for broader inclusivity.", inclusive_count)
+    };
+    
+    // Emotion Tells Message
+    let emotion_tells_count = emotion_tells.iter().map(|e| e.count).sum::<usize>();
+    let emotion_tells_message = if emotion_tells_count == 0 {
+        "No emotion tells found.".to_string()
+    } else if emotion_tells_count <= 5 {
+        format!("{} emotion tell{} found (e.g., 'felt', 'seemed'). Show, don't tell emotions.", 
+            emotion_tells_count, if emotion_tells_count == 1 { "" } else { "s" })
+    } else if emotion_tells_count <= 15 {
+        format!("{} emotion tells found. 'Show, don't tell' - replace filter words with vivid descriptions and actions.", emotion_tells_count)
+    } else {
+        format!("{} emotion tells found. High usage - extensively revise to show emotions through actions and descriptions rather than telling.", emotion_tells_count)
+    };
+    
+    // Style Improvements Message
+    let style_count = style_improvements.iter().map(|s| s.count).sum::<usize>();
+    let style_improvements_message = if style_count == 0 {
+        "No filler words found.".to_string()
+    } else if style_count <= 5 {
+        format!("{} filler word{} found (e.g., 'very', 'really'). Remove for stronger writing.", 
+            style_count, if style_count == 1 { "" } else { "s" })
+    } else {
+        format!("{} filler words found. These weaken your prose - remove or replace with stronger word choices.", style_count)
+    };
+    
+    // Business Jargon Message
+    let jargon_count = business_jargon_items.iter().map(|b| b.count).sum::<usize>();
+    let business_jargon_message = if jargon_count == 0 {
+        "No business jargon found.".to_string()
+    } else if jargon_count <= 3 {
+        format!("{} instance{} of business jargon found. Consider using plain language.", 
+            jargon_count, if jargon_count == 1 { "" } else { "s" })
+    } else {
+        format!("{} instances of business jargon found. Replace corporate buzzwords with clear, direct language.", jargon_count)
+    };
+    
+    // Long Subordinate Clauses Message
+    let long_clauses_count = long_clauses.len();
+    let long_subordinate_clauses_message = if long_clauses_count == 0 {
+        "No overly complex sentences found.".to_string()
+    } else if long_clauses_count <= 3 {
+        format!("{} complex sentence{} found (3+ commas). Consider breaking into shorter sentences.", 
+            long_clauses_count, if long_clauses_count == 1 { "" } else { "s" })
+    } else if long_clauses_count <= 10 {
+        format!("{} complex sentences found. Break up long sentences to improve readability.", long_clauses_count)
+    } else {
+        format!("{} complex sentences found. High usage - extensively revise to improve flow and clarity.", long_clauses_count)
+    };
+    
+    // Passive Index Message
+    let passive_index_message = if passive_index < 10.0 {
+        format!("Excellent! Passive index: {:.1}% (target: up to 25%). Your writing uses active voice effectively.", passive_index)
+    } else if passive_index <= 25.0 {
+        format!("Good. Passive index: {:.1}% (target: up to 25%). Within acceptable range.", passive_index)
+    } else if passive_index <= 40.0 {
+        format!("High passive voice: {:.1}% (target: up to 25%). Consider revising to use more active voice.", passive_index)
+    } else {
+        format!("Very high passive voice: {:.1}% (target: up to 25%). Extensive revision needed - convert to active voice.", passive_index)
+    };
+    
+    // Repeated Sentence Starts Message
+    let repeated_count = repeated_sentence_starts.len();
+    let repeated_sentence_starts_message = if repeated_count == 0 {
+        "No repetitive sentence starts found.".to_string()
+    } else if repeated_count <= 3 {
+        format!("{} word{} used to start multiple sentences. Vary your sentence beginnings for better flow.", 
+            repeated_count, if repeated_count == 1 { "" } else { "s" })
+    } else {
+        format!("{} words repeatedly used to start sentences. Add variety to sentence beginnings to improve rhythm and engagement.", repeated_count)
+    };
+    
+    // Style Guide Items Message
+    let style_guide_count = style_guide_items.iter().map(|s| s.count).sum::<usize>();
+    let style_guide_items_message = if style_guide_count == 0 {
+        "No style guide violations found.".to_string()
+    } else if style_guide_count == 1 {
+        "1 common grammar/style mistake found (e.g., 'alot', 'should of'). Review and correct.".to_string()
+    } else {
+        format!("{} common grammar/style mistakes found. Review and correct these errors.", style_guide_count)
+    };
+
     let response = PassiveVoiceResponse {
         passive_verbs_found: total_passive_count,
+        passive_verbs_message,
         passive_verbs,
-        hidden_verbs: Vec::new(), // TODO: Implement hidden verb detection
-        adverbs_in_dialogue: 0, // TODO: Implement dialogue detection
-        adverbs_outside_dialogue: 0, // TODO: Implement adverb detection
-        adverbs_list: Vec::new(),
-        readability_enhancements: Vec::new(), // TODO: Implement
+        hidden_verbs_found,
+        hidden_verbs_message,
+        hidden_verbs,
+        adverbs_in_dialogue: 0,  // TODO: Need dialogue detection
+        adverbs_outside_dialogue,
+        adverbs_message,
+        adverbs_list,
+        readability_enhancements_found,
+        readability_enhancements_message,
+        readability_enhancements,
+        inclusive_language_message,
+        inclusive_language_improvements,
+        emotion_tells_message,
+        emotion_tells,
+        style_improvements_message,
+        style_improvements,
+        business_jargon_message,
+        business_jargon: business_jargon_items,
+        long_subordinate_clauses_message,
+        long_subordinate_clauses: long_clauses,
         passive_index,
+        passive_index_message,
         passive_index_target: "up to 25".to_string(),
-        repeated_sentence_starts: Vec::new(), // TODO: Implement
+        repeated_sentence_starts_message,
+        repeated_sentence_starts,
+        style_guide_items_message,
+        style_guide_items,
     };
 
     Ok(Json(response))
@@ -1024,8 +1810,7 @@ async fn get_glue_index(
         return Ok(Json(GlueIndexResponse {
             glue_index: 0.0,
             glue_index_target: "up to 40%".to_string(),
-            sticky_sentences: Vec::new(),
-            semi_sticky_sentences: Vec::new(),
+            sentences: Vec::new(),
         }));
     }
 
@@ -1040,8 +1825,7 @@ async fn get_glue_index(
         return Ok(Json(GlueIndexResponse {
             glue_index: 0.0,
             glue_index_target: "up to 40%".to_string(),
-            sticky_sentences: Vec::new(),
-            semi_sticky_sentences: Vec::new(),
+            sentences: Vec::new(),
         }));
     }
 
@@ -1061,6 +1845,7 @@ async fn get_glue_index(
 
     for paragraph in &payload.data {
         let text = &paragraph.text;
+        let para_key = paragraph.key.clone();  // Capture key explicitly at start of loop
         
         if text.trim().is_empty() {
             continue;
@@ -1074,7 +1859,7 @@ async fn get_glue_index(
         let para_report = para_analyzer.generate_full_report()
             .map_err(|e| ApiError::AnalysisError(e.to_string()))?;
 
-        // Process sticky sentences - now using fields directly from struct
+        // Process sticky sentences (>45% glue) - now using fields directly from struct
         for s in para_report.sticky_sentences.sticky_sentences {
             // Find nearest valid character boundaries
             let safe_start = find_char_boundary(text, s.start_index);
@@ -1105,11 +1890,12 @@ async fn get_glue_index(
                 string,
                 excerpt,
                 glue_percentage: s.glue_percentage,
-                paragraph_key: paragraph.key.clone(),
+                category: "sticky".to_string(),  // >45% glue
+                paragraph_key: para_key.clone(),  // Use the explicitly captured key
             });
         }
 
-        // Process semi-sticky sentences - now using field directly from struct
+        // Process semi-sticky sentences (35-45% glue) - now using field directly from struct
         for s in para_report.sticky_sentences.semi_sticky_sentences {
             // Find nearest valid character boundaries
             let safe_start = find_char_boundary(text, s.start_index);
@@ -1140,16 +1926,20 @@ async fn get_glue_index(
                 string,
                 excerpt,
                 glue_percentage: s.glue_percentage,
-                paragraph_key: paragraph.key.clone(),
+                category: "semi-sticky".to_string(),  // 35-45% glue
+                paragraph_key: para_key.clone(),  // Use the explicitly captured key
             });
         }
     }
 
+    // Combine sticky and semi-sticky into single array
+    let mut all_sentences = all_sticky_sentences;
+    all_sentences.extend(all_semi_sticky_sentences);
+
     let response = GlueIndexResponse {
         glue_index,
         glue_index_target: "up to 40%".to_string(),
-        sticky_sentences: all_sticky_sentences,
-        semi_sticky_sentences: all_semi_sticky_sentences,
+        sentences: all_sentences,
     };
 
     Ok(Json(response))
