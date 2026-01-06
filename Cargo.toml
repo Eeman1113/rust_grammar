@@ -2,69 +2,181 @@
 name = "Rust_Grammar"
 version = "2.1.0"
 edition = "2021"
-authors = ["Eeman Majumder eeman.majumder@gmail.com"]
-description = "A comprehensive, production-ready text analysis tool"
+authors = ["Eeman Majumder <eeman.majumder@gmail.com>"]
+description = "A comprehensive, production-ready text analysis tool and API server"
 license = "MIT"
-repository = "https://github.com/yourusername/text-analyzer"
-keywords = ["text", "analysis", "nlp", "grammar", "readability"]
-categories = ["text-processing", "command-line-utilities"]
+repository = "https://github.com/Eeman1113/rust_grammar"
+readme = "README.md"
+keywords = ["text-processing", "nlp", "grammar", "analysis", "api"]
+categories = ["command-line-utilities", "text-processing", "web-programming"]
+exclude = ["/tests/data/*", ".github/*"]
+
+# ==============================================================================
+# DEPENDENCIES
+# ==============================================================================
 
 [dependencies]
-# CLI and configuration
-clap = { version = "4.5", features = ["derive", "cargo"] }
-serde = { version = "1.0", features = ["derive"] }
+
+# --- CLI & Configuration ---
+# Command Line Argument Parser
+clap = { version = "4.5", features = ["derive", "cargo", "env", "unicode", "wrap_help"], optional = true }
+# Configuration file parsing
+config = { version = "0.14", features = ["yaml", "toml"] }
+# Cross-platform path handling for config directories
+dirs = "5.0"
+
+# --- Serialization & Data Formats ---
+# Core serialization framework
+serde = { version = "1.0", features = ["derive", "rc"] }
+# JSON support
 serde_json = "1.0"
+# YAML support
 serde_yaml = "0.9"
+# TOML support
 toml = "0.8"
 
-# Web server (for API)
-axum = "0.7"
-tokio = { version = "1", features = ["full"] }
-tower = "0.4"
-tower-http = { version = "0.5", features = ["cors"] }
+# --- Web Server (API) ---
+# Ergonomic and modular web framework
+axum = { version = "0.7", features = ["http1", "http2", "json", "multipart", "ws", "macros"], optional = true }
+# Asynchronous runtime
+tokio = { version = "1.36", features = ["full"], optional = true }
+# Middleware stack
+tower = { version = "0.4", features = ["util", "timeout", "limit", "load-shed", "steer", "filter"], optional = true }
+# HTTP specific middleware
+tower-http = { version = "0.5", features = ["cors", "trace", "fs", "compression-full", "limit", "set-header", "request-id", "util"], optional = true }
+# UUIDs for request tracking
+uuid = { version = "1.7", features = ["v4", "fast-rng", "serde"] }
 
-# Error handling
+# --- Error Handling ---
+# Library error types
 thiserror = "1.0"
+# Application error handling
 anyhow = "1.0"
 
-# Text processing
-regex = "1.10"
+# --- Text Processing & NLP ---
+# Regular expressions
+regex = { version = "1.10", features = ["unicode", "perf", "std"] }
+# Static initialization
 lazy_static = "1.4"
+# Unicode segmentation (graphemes, words, sentences)
 unicode-segmentation = "1.11"
+# Unicode normalization (NFC, NFD, etc.)
 unicode-normalization = "0.1"
+# Enum iteration and string conversion
+strum = { version = "0.26", features = ["derive"] }
+strum_macros = "0.26"
+# Formatting text for CLI output
+textwrap = { version = "0.16", features = ["terminal_size"], optional = true }
+# Perfect Hash Functions for optimized static dictionary lookups
+phf = { version = "0.11", features = ["macros"] }
+# Extra iterator adaptors
+itertools = "0.12"
 
-# Performance
-rayon = "1.8"
+# --- Performance & Concurrency ---
+# Data parallelism library
+rayon = { version = "1.9", optional = true }
+# Concurrent HashMap
+dashmap = "5.5"
+# Small vector optimization
+smallvec = { version = "1.13", features = ["serde", "write"] }
 
-# Logging
+# --- Logging & Tracing ---
+# Structured logging facade
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "ansi"] }
+# Logging subscriber and formatting
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "ansi", "json", "time", "local-time"] }
+# File appender for logs
+tracing-appender = "0.2"
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
 
-# Document parsing (optional features)
-pulldown-cmark = { version = "0.9", optional = true }
+# --- Document Parsing (Optional) ---
+# Markdown parser
+pulldown-cmark = { version = "0.10", optional = true }
+# HTML parsing
 scraper = { version = "0.18", optional = true }
 
+# ==============================================================================
+# DEV DEPENDENCIES
+# ==============================================================================
+
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
+# Statistical benchmarking
+criterion = { version = "0.5", features = ["html_reports", "async_tokio"] }
+# Property-based testing
 proptest = "1.4"
+# Test case generation
 test-case = "3.3"
+# Pretty assertions for clearer test failures
 pretty_assertions = "1.4"
-tempfile = "3.8"
+# Temporary file creation
+tempfile = "3.10"
+# Async testing utilities
+tokio-test = "0.4"
+# HTTP testing
+reqwest = { version = "0.11", features = ["json", "blocking"] }
+# Mocking library
+mockall = "0.12"
+
+# ==============================================================================
+# BENCHMARKS
+# ==============================================================================
 
 [[bench]]
 name = "performance"
 harness = false
 
+# ==============================================================================
+# FEATURES
+# ==============================================================================
+
 [features]
-default = ["markdown", "html"]
-markdown = ["pulldown-cmark"]
-html = ["scraper"]
-full = ["markdown", "html"]
+# Default features enabled when running `cargo build`
+default = ["cli", "parallel", "markdown", "html"]
 
+# --- Core Feature Sets ---
+
+# Enables the Command Line Interface binary requirements
+cli = ["dep:clap", "dep:textwrap"]
+
+# Enables the API Server binary requirements
+server = ["dep:axum", "dep:tokio", "dep:tower", "dep:tower-http"]
+
+# Enables Parallel processing using Rayon
+parallel = ["dep:rayon"]
+
+# --- Parsing Support ---
+
+# Markdown analysis support
+markdown = ["dep:pulldown-cmark"]
+
+# HTML scraping and analysis support
+html = ["dep:scraper"]
+
+# --- Development ---
+
+# Enables full feature set for development/CI
+full = ["cli", "server", "parallel", "markdown", "html"]
+
+# ==============================================================================
+# PROFILES
+# ==============================================================================
+
+# Optimized Release Profile
 [profile.release]
-opt-level = 3
-lto = true
-codegen-units = 1
+opt-level = 3           # Maximum optimization
+lto = "fat"             # Link Time Optimization (slower build, faster binary)
+codegen-units = 1       # Reduce parallelism for better optimization
+panic = "abort"         # Remove stack unwinding for smaller binary
+strip = true            # Strip symbols for smaller binary
 
+# Fast Development Profile
+[profile.dev]
+opt-level = 0
+debug = true
+split-debuginfo = "unpacked" # Faster linking on supported platforms
+
+# Benchmark Profile
 [profile.bench]
 inherits = "release"
+debug = true            # Keep debug info for profiling
