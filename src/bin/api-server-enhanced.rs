@@ -2066,7 +2066,8 @@ fn create_user_friendly_scores(
         },
         
         emotion_tells: SimpleScore {
-            current: ((emotion_tells as f64) * 100.0).round() / 100.0,
+            // current: ((emotion_tells as f64) * 100.0).round() / 100.0,
+            current: (((emotion_tells as f64 / sentence_count) * 100.0) * 100.0).round() / 100.0,
             ideal: "0 instances".to_string(),
             status: if emotion_tells == 0 { "good" } else if emotion_tells <= 3 { "fair" } else { "needs improvement" }.to_string(),
             message: get_emotion_tells_message(emotion_tells),
