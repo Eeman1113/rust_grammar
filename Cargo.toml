@@ -12,6 +12,20 @@ categories = ["command-line-utilities", "text-processing", "web-programming"]
 exclude = ["/tests/data/*", ".github/*"]
 
 # ==============================================================================
+# BINARIES
+# ==============================================================================
+
+[[bin]]
+name = "api-server"
+path = "src/bin/api-server.rs"
+required-features = ["server"]
+
+[[bin]]
+name = "api-server-enhanced"
+path = "src/bin/api-server-enhanced.rs"
+required-features = ["server"]
+
+# ==============================================================================
 # DEPENDENCIES
 # ==============================================================================
 
