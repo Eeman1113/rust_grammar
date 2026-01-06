@@ -1,25 +1,59 @@
 [package]
 name = "Rust_Grammar"
-version = "2.1.1"
+version = "2.2.0"
 edition = "2021"
 authors = ["Eeman Majumder <eeman.majumder@gmail.com>"]
-description = "A comprehensive, production-ready text analysis tool and API server"
+description = """
+A comprehensive, production-ready text analysis library and REST API server.
+Features 19+ professional writing analysis tools including grammar checking,
+readability metrics, passive voice detection, style scoring, and more.
+Provides both CLI and REST API interfaces with 6 specialized endpoints.
+"""
 license = "MIT"
 repository = "https://github.com/Eeman1113/rust_grammar"
+homepage = "https://github.com/Eeman1113/rust_grammar"
+documentation = "https://docs.rs/Rust_Grammar"
 readme = "README.md"
-keywords = ["text-processing", "nlp", "grammar", "analysis", "api"]
-categories = ["command-line-utilities", "text-processing", "web-programming"]
-exclude = ["/tests/data/*", ".github/*"]
+keywords = ["text-analysis", "nlp", "grammar-checker", "readability", "writing-assistant"]
+categories = ["command-line-utilities", "text-processing", "web-programming::http-server"]
+exclude = [
+    "/tests/data/*",
+    ".github/*",
+    "*.log",
+    "logs/*",
+    ".env",
+    ".env.*",
+]
+
+# Minimum supported Rust version
+rust-version = "1.75"
 
 # ==============================================================================
 # BINARIES
 # ==============================================================================
 
+# Main CLI application
+[[bin]]
+name = "text-analyzer"
+path = "src/main.rs"
+
+# Basic API server with single /analyze endpoint
+# Run with: cargo run --release --features server --bin api-server
 [[bin]]
 name = "api-server"
 path = "src/bin/api-server.rs"
 required-features = ["server"]
 
+# Enhanced API server with 6 endpoints:
+#   POST /analyze       - Full analysis with scores and issues
+#   POST /score         - Scores only with ideal values and guidance
+#   POST /sentencelength - Detailed sentence length analysis
+#   POST /readability   - Readability metrics and difficult paragraphs
+#   POST /passivevoice  - Passive voice, adverbs, hidden verbs, style
+#   POST /glueindex     - Glue index and sticky sentences
+#
+# Run with: cargo run --release --features server --bin api-server-enhanced
+# Server binds to: http://0.0.0.0:2000
 [[bin]]
 name = "api-server-enhanced"
 path = "src/bin/api-server-enhanced.rs"
@@ -31,83 +65,166 @@ required-features = ["server"]
 
 [dependencies]
 
-# --- CLI & Configuration ---
-# Command Line Argument Parser
-clap = { version = "4.5", features = ["derive", "cargo", "env", "unicode", "wrap_help"], optional = true }
-# Configuration file parsing
+# -----------------------------------------------------------------------------
+# CLI & Configuration
+# -----------------------------------------------------------------------------
+
+# Command Line Argument Parser - powerful, flexible CLI framework
+clap = { version = "4.5", features = [
+    "derive",      # Derive macros for struct-based CLI
+    "cargo",       # Read from Cargo.toml
+    "env",         # Environment variable support
+    "unicode",     # Unicode support in help text
+    "wrap_help",   # Automatic help text wrapping
+], optional = true }
+
+# Configuration file parsing (YAML, TOML, JSON)
 config = { version = "0.14", features = ["yaml", "toml"] }
+
 # Cross-platform path handling for config directories
 dirs = "5.0"
 
-# --- Serialization & Data Formats ---
+# -----------------------------------------------------------------------------
+# Serialization & Data Formats
+# -----------------------------------------------------------------------------
+
 # Core serialization framework
 serde = { version = "1.0", features = ["derive", "rc"] }
-# JSON support
+
+# JSON support - used for API responses
 serde_json = "1.0"
-# YAML support
+
+# YAML support - used for configuration files
 serde_yaml = "0.9"
-# TOML support
+
+# TOML support - used for configuration files
 toml = "0.8"
 
-# --- Web Server (API) ---
-# Ergonomic and modular web framework
-axum = { version = "0.7", features = ["http1", "http2", "json", "multipart", "ws", "macros"], optional = true }
-# Asynchronous runtime
+# -----------------------------------------------------------------------------
+# Web Server (API) - Optional, enabled with "server" feature
+# -----------------------------------------------------------------------------
+
+# Axum - ergonomic and modular web framework built on Tokio
+axum = { version = "0.7", features = [
+    "http1",       # HTTP/1.1 support
+    "http2",       # HTTP/2 support
+    "json",        # JSON request/response handling
+    "multipart",   # Multipart form support
+    "ws",          # WebSocket support (future use)
+    "macros",      # Routing macros
+], optional = true }
+
+# Tokio - asynchronous runtime for Rust
 tokio = { version = "1.36", features = ["full"], optional = true }
-# Middleware stack
-tower = { version = "0.4", features = ["util", "timeout", "limit", "load-shed", "steer", "filter"], optional = true }
-# HTTP specific middleware
-tower-http = { version = "0.5", features = ["cors", "trace", "fs", "compression-full", "limit", "set-header", "request-id", "util"], optional = true }
-# UUIDs for request tracking
+
+# Tower - modular middleware stack
+tower = { version = "0.4", features = [
+    "util",        # Utility extensions
+    "timeout",     # Request timeout handling
+    "limit",       # Rate limiting
+    "load-shed",   # Load shedding under pressure
+    "steer",       # Request routing
+    "filter",      # Request filtering
+], optional = true }
+
+# Tower-HTTP - HTTP-specific middleware for Tower
+tower-http = { version = "0.5", features = [
+    "cors",        # CORS handling (enabled permissively for API)
+    "trace",       # Request tracing
+    "fs",          # Static file serving
+    "compression-full",  # Response compression
+    "limit",       # Request body limits
+    "set-header",  # Header manipulation
+    "request-id",  # Request ID generation
+    "util",        # Utility extensions
+], optional = true }
+
+# UUIDs for request tracking and issue IDs
 uuid = { version = "1.7", features = ["v4", "fast-rng", "serde"] }
 
-# --- Error Handling ---
-# Library error types
+# -----------------------------------------------------------------------------
+# Error Handling
+# -----------------------------------------------------------------------------
+
+# Library error types - derive Error trait easily
 thiserror = "1.0"
-# Application error handling
+
+# Application error handling - flexible error propagation
 anyhow = "1.0"
 
-# --- Text Processing & NLP ---
-# Regular expressions
+# -----------------------------------------------------------------------------
+# Text Processing & NLP
+# -----------------------------------------------------------------------------
+
+# Regular expressions - high performance regex engine
 regex = { version = "1.10", features = ["unicode", "perf", "std"] }
-# Static initialization
+
+# Static initialization - lazy evaluation of statics
 lazy_static = "1.4"
-# Unicode segmentation (graphemes, words, sentences)
+
+# Unicode segmentation - graphemes, words, sentences
 unicode-segmentation = "1.11"
-# Unicode normalization (NFC, NFD, etc.)
+
+# Unicode normalization - NFC, NFD, NFKC, NFKD
 unicode-normalization = "0.1"
+
 # Enum iteration and string conversion
 strum = { version = "0.26", features = ["derive"] }
 strum_macros = "0.26"
-# Formatting text for CLI output
+
+# Text formatting for CLI output
 textwrap = { version = "0.16", features = ["terminal_size"], optional = true }
-# Perfect Hash Functions for optimized static dictionary lookups
+
+# Perfect Hash Functions - optimized static dictionary lookups
 phf = { version = "0.11", features = ["macros"] }
+
 # Extra iterator adaptors
 itertools = "0.12"
 
-# --- Performance & Concurrency ---
-# Data parallelism library
+# -----------------------------------------------------------------------------
+# Performance & Concurrency
+# -----------------------------------------------------------------------------
+
+# Rayon - data parallelism library for CPU-bound tasks
 rayon = { version = "1.9", optional = true }
-# Concurrent HashMap
+
+# DashMap - concurrent HashMap for multi-threaded access
 dashmap = "5.5"
-# Small vector optimization
+
+# SmallVec - stack-allocated vectors for small sizes
 smallvec = { version = "1.13", features = ["serde", "write"] }
 
-# --- Logging & Tracing ---
+# -----------------------------------------------------------------------------
+# Logging & Tracing
+# -----------------------------------------------------------------------------
+
 # Structured logging facade
 tracing = "0.1"
+
 # Logging subscriber and formatting
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "ansi", "json", "time", "local-time"] }
-# File appender for logs
+tracing-subscriber = { version = "0.3", features = [
+    "env-filter",  # RUST_LOG environment variable filtering
+    "fmt",         # Formatted output
+    "ansi",        # Colored terminal output
+    "json",        # JSON log format
+    "time",        # Timestamp support
+    "local-time",  # Local timezone timestamps
+] }
+
+# File appender for rotating log files
 tracing-appender = "0.2"
-# Time handling
+
+# Time handling - dates and timestamps
 chrono = { version = "0.4", features = ["serde"] }
 
-# --- Document Parsing (Optional) ---
-# Markdown parser
+# -----------------------------------------------------------------------------
+# Document Parsing (Optional)
+# -----------------------------------------------------------------------------
+
+# Markdown parser - CommonMark compliant
 pulldown-cmark = { version = "0.10", optional = true }
-# HTML parsing
+
+# HTML parsing and scraping
 scraper = { version = "0.18", optional = true }
 
 # ==============================================================================
@@ -115,21 +232,28 @@ scraper = { version = "0.18", optional = true }
 # ==============================================================================
 
 [dev-dependencies]
-# Statistical benchmarking
+# Statistical benchmarking framework
 criterion = { version = "0.5", features = ["html_reports", "async_tokio"] }
+
 # Property-based testing
 proptest = "1.4"
-# Test case generation
+
+# Parameterized test cases
 test-case = "3.3"
+
 # Pretty assertions for clearer test failures
 pretty_assertions = "1.4"
-# Temporary file creation
+
+# Temporary file creation for tests
 tempfile = "3.10"
+
 # Async testing utilities
 tokio-test = "0.4"
-# HTTP testing
+
+# HTTP client for API testing
 reqwest = { version = "0.11", features = ["json", "blocking"] }
-# Mocking library
+
+# Mocking library for unit tests
 mockall = "0.12"
 
 # ==============================================================================
@@ -145,21 +269,29 @@ harness = false
 # ==============================================================================
 
 [features]
-# Default features enabled when running `cargo build`
+# Default features for standard usage (CLI + parallel processing)
 default = ["cli", "parallel", "markdown", "html"]
 
-# --- Core Feature Sets ---
+# -----------------------------------------------------------------------------
+# Core Feature Sets
+# -----------------------------------------------------------------------------
 
-# Enables the Command Line Interface binary requirements
+# Command Line Interface
+# Includes: clap (argument parsing), textwrap (text formatting)
 cli = ["dep:clap", "dep:textwrap"]
 
-# Enables the API Server binary requirements
+# REST API Server (binds to 0.0.0.0:2000)
+# Includes: axum, tokio, tower, tower-http
+# Endpoints: /analyze, /score, /sentencelength, /readability, /passivevoice, /glueindex
 server = ["dep:axum", "dep:tokio", "dep:tower", "dep:tower-http"]
 
-# Enables Parallel processing using Rayon
+# Parallel processing for large documents
+# Includes: rayon
 parallel = ["dep:rayon"]
 
-# --- Parsing Support ---
+# -----------------------------------------------------------------------------
+# Document Parsing Support
+# -----------------------------------------------------------------------------
 
 # Markdown analysis support
 markdown = ["dep:pulldown-cmark"]
@@ -167,9 +299,12 @@ markdown = ["dep:pulldown-cmark"]
 # HTML scraping and analysis support
 html = ["dep:scraper"]
 
-# --- Development ---
+# -----------------------------------------------------------------------------
+# Meta Features
+# -----------------------------------------------------------------------------
 
-# Enables full feature set for development/CI
+# Full feature set - all capabilities enabled
+# Use for development or when all features are needed
 full = ["cli", "server", "parallel", "markdown", "html"]
 
 # ==============================================================================
@@ -177,20 +312,37 @@ full = ["cli", "server", "parallel", "markdown", "html"]
 # ==============================================================================
 
 # Optimized Release Profile
+# Use for production deployments
 [profile.release]
 opt-level = 3           # Maximum optimization
 lto = "fat"             # Link Time Optimization (slower build, faster binary)
-codegen-units = 1       # Reduce parallelism for better optimization
-panic = "abort"         # Remove stack unwinding for smaller binary
-strip = true            # Strip symbols for smaller binary
+codegen-units = 1       # Single codegen unit for better optimization
+panic = "abort"         # Abort on panic (smaller binary, no unwinding)
+strip = true            # Strip symbols (smaller binary)
 
 # Fast Development Profile
+# Use for local development
 [profile.dev]
-opt-level = 0
-debug = true
-split-debuginfo = "unpacked" # Faster linking on supported platforms
+opt-level = 0           # No optimization (fast compile)
+debug = true            # Full debug info
+split-debuginfo = "unpacked"  # Faster incremental linking
 
 # Benchmark Profile
+# Use for performance testing
 [profile.bench]
 inherits = "release"
 debug = true            # Keep debug info for profiling
+
+# ==============================================================================
+# PACKAGE METADATA
+# ==============================================================================
+
+[package.metadata.docs.rs]
+# Build docs with all features enabled
+all-features = true
+# Document all features
+rustdoc-args = ["--cfg", "docsrs"]
+
+# Badge configuration for README
+[badges]
+maintenance = { status = "actively-developed" }
