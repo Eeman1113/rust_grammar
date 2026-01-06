@@ -7,7 +7,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
-use text_analyzer::{Config, TextAnalyzer};
+use Rust_Grammar::{Config, TextAnalyzer};
 use tower_http::cors::CorsLayer;
 
 #[tokio::main]

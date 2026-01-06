@@ -3,6 +3,37 @@
 version = 4
 
 [[package]]
+name = "Rust_Grammar"
+version = "2.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "clap",
+ "criterion",
+ "lazy_static",
+ "pretty_assertions",
+ "proptest",
+ "pulldown-cmark",
+ "rayon",
+ "regex",
+ "scraper",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tempfile",
+ "test-case",
+ "thiserror",
+ "tokio",
+ "toml",
+ "tower 0.4.13",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "unicode-normalization",
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "ahash"
 version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1565,37 +1596,6 @@ dependencies = [
  "quote",
  "syn 2.0.112",
  "test-case-core",
-]
-
-[[package]]
-name = "text-analyzer"
-version = "2.0.0"
-dependencies = [
- "anyhow",
- "axum",
- "clap",
- "criterion",
- "lazy_static",
- "pretty_assertions",
- "proptest",
- "pulldown-cmark",
- "rayon",
- "regex",
- "scraper",
- "serde",
- "serde_json",
- "serde_yaml",
- "tempfile",
- "test-case",
- "thiserror",
- "tokio",
- "toml",
- "tower 0.4.13",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "unicode-normalization",
- "unicode-segmentation",
 ]
 
 [[package]]

@@ -7,8 +7,8 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
-use text_analyzer::{Config, TextAnalyzer};
-use text_analyzer::grammar::{PassiveVoiceMatch, GrammarIssue};
+use Rust_Grammar::{Config, TextAnalyzer};
+use Rust_Grammar::grammar::{PassiveVoiceMatch, GrammarIssue};
 use tower_http::cors::CorsLayer;
 
 #[tokio::main]
@@ -1955,11 +1955,11 @@ fn find_char_boundary(text: &str, byte_index: usize) -> usize {
 
 // Create user-friendly scores with ideal values and quality messages
 fn create_user_friendly_scores(
-    full_report: &text_analyzer::FullAnalysisReport,
+    full_report: &Rust_Grammar::FullAnalysisReport,
     passive_voice: &[PassiveVoiceMatch],
     _grammar: &[GrammarIssue],
-    stats: &text_analyzer::TextStatistics,
-    readability: &text_analyzer::ReadabilityMetrics,
+    stats: &Rust_Grammar::TextStatistics,
+    readability: &Rust_Grammar::ReadabilityMetrics,
     text: &str,
 ) -> UserFriendlyScores {
     let sentence_count = stats.sentence_count.max(1) as f64;
@@ -2099,11 +2099,11 @@ fn create_user_friendly_scores(
 
 
 fn calculate_comprehensive_scores(
-    full_report: &text_analyzer::FullAnalysisReport,
+    full_report: &Rust_Grammar::FullAnalysisReport,
     passive_voice: &[PassiveVoiceMatch],
     _grammar: &[GrammarIssue],
-    stats: &text_analyzer::TextStatistics,
-    readability: &text_analyzer::ReadabilityMetrics,
+    stats: &Rust_Grammar::TextStatistics,
+    readability: &Rust_Grammar::ReadabilityMetrics,
     text: &str,
 ) -> ComprehensiveScores {
     let sentence_count = stats.sentence_count.max(1) as f64;
@@ -2369,7 +2369,7 @@ fn calculate_comprehensive_scores(
 }
 
 fn convert_to_issues(
-    full_report: &text_analyzer::FullAnalysisReport,
+    full_report: &Rust_Grammar::FullAnalysisReport,
     passive_voice: &[PassiveVoiceMatch],
     grammar: &[GrammarIssue],
     text: &str,
@@ -2441,7 +2441,7 @@ fn get_style_message(score: i32) -> String {
     }
 }
 
-fn calculate_sentence_length_score(report: &text_analyzer::SentenceLengthReport) -> i32 {
+fn calculate_sentence_length_score(report: &Rust_Grammar::SentenceLengthReport) -> i32 {
     // Score based on variety and average
     let avg = report.avg_length;
     if avg >= 15.0 && avg <= 20.0 {
@@ -2453,7 +2453,7 @@ fn calculate_sentence_length_score(report: &text_analyzer::SentenceLengthReport)
     }
 }
 
-fn calculate_variety_score(report: &text_analyzer::SentenceLengthReport) -> i32 {
+fn calculate_variety_score(report: &Rust_Grammar::SentenceLengthReport) -> i32 {
     // Score based on standard deviation (higher = more variety)
     let std_dev = report.std_deviation;
     if std_dev > 8.0 {

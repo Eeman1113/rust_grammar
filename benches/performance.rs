@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-use text_analyzer::TextAnalyzer;
+use Rust_Grammar::TextAnalyzer;
 
 fn benchmark_sentence_splitting(c: &mut Criterion) {
     let text = "This is a test. Dr. Smith works at MIT. The U.S.A. is great. ".repeat(100);

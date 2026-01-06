@@ -318,7 +318,7 @@ Use it:
 ### Programmatic Usage
 
 ```rust
-use text_analyzer::{TextAnalyzer, Config};
+use Rust_Grammar::{TextAnalyzer, Config};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load text

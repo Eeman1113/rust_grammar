@@ -245,7 +245,7 @@ cargo audit
 ### Programmatic Usage
 
 ```rust
-use text_analyzer::{TextAnalyzer, Config};
+use Rust_Grammar::{TextAnalyzer, Config};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load text
@@ -273,7 +273,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Custom Configuration
 
 ```rust
-use text_analyzer::{TextAnalyzer, Config, config::DocumentType};
+use Rust_Grammar::{TextAnalyzer, Config, config::DocumentType};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let text = std::fs::read_to_string("input.txt")?;

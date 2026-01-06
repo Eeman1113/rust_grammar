@@ -1,8 +1,8 @@
 [package]
-name = "text-analyzer"
+name = "Rust_Grammar"
 version = "2.0.0"
 edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["Eeman Majumder eeman.majumder@gmail.com"]
 description = "A comprehensive, production-ready text analysis tool"
 license = "MIT"
 repository = "https://github.com/yourusername/text-analyzer"

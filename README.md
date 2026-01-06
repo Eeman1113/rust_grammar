@@ -592,7 +592,7 @@ text-analyzer/
 ## 💡 API Usage
 
 ```rust
-use text_analyzer::{TextAnalyzer, Config, FullAnalysisReport};
+use Rust_Grammar::{TextAnalyzer, Config, FullAnalysisReport};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let text = std::fs::read_to_string("article.txt")?;

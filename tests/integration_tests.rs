@@ -1,5 +1,5 @@
-use text_analyzer::{TextAnalyzer, Config, error::AnalysisError};
-use text_analyzer::config::DocumentType;
+use Rust_Grammar::{TextAnalyzer, Config, error::AnalysisError};
+use Rust_Grammar::config::DocumentType;
 
 #[test]
 fn test_basic_analysis_flow() {

@@ -1,4 +1,4 @@
-use text_analyzer::{TextAnalyzer, Config, error::Result};
+use Rust_Grammar::{TextAnalyzer, Config, error::Result};
 use clap::Parser;
 use std::fs;
 use std::path::PathBuf;
@@ -120,7 +120,7 @@ fn main() -> Result<()> {
             None
         };
         
-        let html = text_analyzer::HtmlVisualizer::generate(
+        let html = Rust_Grammar::HtmlVisualizer::generate(
             analyzer.text(),
             analyzer.sentences(),
             &stats,
@@ -187,7 +187,7 @@ fn read_input_file(path: &PathBuf) -> Result<String> {
     info!("Reading file: {}", path.display());
     
     Ok(fs::read_to_string(path)
-        .map_err(|e| text_analyzer::error::AnalysisError::IoError(e))?)
+        .map_err(|e| Rust_Grammar::error::AnalysisError::IoError(e))?)
 }
 
 fn load_config(cli: &Cli) -> Result<Config> {
@@ -206,11 +206,11 @@ fn load_config(cli: &Cli) -> Result<Config> {
     // Use preset if document type specified
     if let Some(doc_type) = &cli.doc_type {
         let doc_type = match doc_type.to_lowercase().as_str() {
-            "academic" => text_analyzer::config::DocumentType::Academic,
-            "fiction" => text_analyzer::config::DocumentType::Fiction,
-            "business" => text_analyzer::config::DocumentType::Business,
-            "technical" => text_analyzer::config::DocumentType::Technical,
-            _ => text_analyzer::config::DocumentType::General,
+            "academic" => Rust_Grammar::config::DocumentType::Academic,
+            "fiction" => Rust_Grammar::config::DocumentType::Fiction,
+            "business" => Rust_Grammar::config::DocumentType::Business,
+            "technical" => Rust_Grammar::config::DocumentType::Technical,
+            _ => Rust_Grammar::config::DocumentType::General,
         };
         return Ok(Config::preset(doc_type));
     }
@@ -219,7 +219,7 @@ fn load_config(cli: &Cli) -> Result<Config> {
     Ok(Config::default())
 }
 
-fn print_statistics(stats: &text_analyzer::TextStatistics) {
+fn print_statistics(stats: &Rust_Grammar::TextStatistics) {
     println!("Words: {}", stats.word_count);
     println!("Sentences: {}", stats.sentence_count);
     println!("Paragraphs: {}", stats.paragraph_count);
@@ -227,10 +227,10 @@ fn print_statistics(stats: &text_analyzer::TextStatistics) {
 }
 
 fn print_text_report(
-    stats: &text_analyzer::TextStatistics,
-    readability: &text_analyzer::ReadabilityMetrics,
-    grammar_issues: &[text_analyzer::grammar::GrammarIssue],
-    passive_voice: &[text_analyzer::grammar::PassiveVoiceMatch],
+    stats: &Rust_Grammar::TextStatistics,
+    readability: &Rust_Grammar::ReadabilityMetrics,
+    grammar_issues: &[Rust_Grammar::grammar::GrammarIssue],
+    passive_voice: &[Rust_Grammar::grammar::PassiveVoiceMatch],
 ) {
     println!("\n{}", "=".repeat(80));
     println!("TEXT ANALYSIS REPORT");
@@ -281,15 +281,15 @@ fn print_text_report(
 }
 
 fn print_json_report(
-    stats: &text_analyzer::TextStatistics,
-    readability: &text_analyzer::ReadabilityMetrics,
-    grammar_issues: &[text_analyzer::grammar::GrammarIssue],
-    passive_voice: &[text_analyzer::grammar::PassiveVoiceMatch],
+    stats: &Rust_Grammar::TextStatistics,
+    readability: &Rust_Grammar::ReadabilityMetrics,
+    grammar_issues: &[Rust_Grammar::grammar::GrammarIssue],
+    passive_voice: &[Rust_Grammar::grammar::PassiveVoiceMatch],
 ) -> Result<()> {
     #[derive(serde::Serialize)]
     struct Report<'a> {
-        statistics: &'a text_analyzer::TextStatistics,
-        readability: &'a text_analyzer::ReadabilityMetrics,
+        statistics: &'a Rust_Grammar::TextStatistics,
+        readability: &'a Rust_Grammar::ReadabilityMetrics,
         grammar_issues_count: usize,
         passive_voice_count: usize,
     }
@@ -307,15 +307,15 @@ fn print_json_report(
 }
 
 fn print_yaml_report(
-    stats: &text_analyzer::TextStatistics,
-    readability: &text_analyzer::ReadabilityMetrics,
-    grammar_issues: &[text_analyzer::grammar::GrammarIssue],
-    passive_voice: &[text_analyzer::grammar::PassiveVoiceMatch],
+    stats: &Rust_Grammar::TextStatistics,
+    readability: &Rust_Grammar::ReadabilityMetrics,
+    grammar_issues: &[Rust_Grammar::grammar::GrammarIssue],
+    passive_voice: &[Rust_Grammar::grammar::PassiveVoiceMatch],
 ) -> Result<()> {
     #[derive(serde::Serialize)]
     struct Report<'a> {
-        statistics: &'a text_analyzer::TextStatistics,
-        readability: &'a text_analyzer::ReadabilityMetrics,
+        statistics: &'a Rust_Grammar::TextStatistics,
+        readability: &'a Rust_Grammar::ReadabilityMetrics,
         grammar_issues_count: usize,
         passive_voice_count: usize,
     }
@@ -332,7 +332,7 @@ fn print_yaml_report(
     Ok(())
 }
 
-fn print_comprehensive_report(report: &text_analyzer::FullAnalysisReport) {
+fn print_comprehensive_report(report: &Rust_Grammar::FullAnalysisReport) {
     println!("\n{}", "=".repeat(80));
     println!("COMPREHENSIVE TEXT ANALYSIS REPORT - ALL FEATURES");
     println!("{}", "=".repeat(80));
@@ -561,13 +561,13 @@ fn print_comprehensive_report(report: &text_analyzer::FullAnalysisReport) {
 fn save_report(
     path: &PathBuf,
     format: &str,
-    stats: &text_analyzer::TextStatistics,
-    readability: &text_analyzer::ReadabilityMetrics,
+    stats: &Rust_Grammar::TextStatistics,
+    readability: &Rust_Grammar::ReadabilityMetrics,
 ) -> Result<()> {
     #[derive(serde::Serialize, Debug)]
     struct Report<'a> {
-        statistics: &'a text_analyzer::TextStatistics,
-        readability: &'a text_analyzer::ReadabilityMetrics,
+        statistics: &'a Rust_Grammar::TextStatistics,
+        readability: &'a Rust_Grammar::ReadabilityMetrics,
     }
 
     let report = Report {
