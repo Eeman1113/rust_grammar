@@ -27,7 +27,8 @@ async fn main() {
         .layer(CorsLayer::permissive());
 
     // Bind to 0.0.0.0:2000
-    let addr = SocketAddr::from(([0, 0, 0, 0], 2000));
+    // let addr = SocketAddr::from(([0, 0, 0, 0], 2000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 80));
     println!("🚀 Text Analyzer API running on http://{}", addr);
     println!("📝 POST to http://{}/analyze with JSON body: {{\"text\": \"your text\"}}", addr);
     println!("📊 POST to http://{}/score for scores only", addr);
