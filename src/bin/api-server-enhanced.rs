@@ -1861,21 +1861,14 @@ async fn get_glue_index(
 
         // Process sticky sentences (>45% glue) - now using fields directly from struct
         for s in para_report.sticky_sentences.sticky_sentences {
-            // Find nearest valid character boundaries
-            let safe_start = find_char_boundary(text, s.start_index);
-            let safe_end = find_char_boundary(text, s.end_index);
+            // Use the sentence text directly from the analyzer - it's already complete!
+            let string = s.sentence.clone();
             
-            // Convert byte positions to character positions
+            // Convert byte positions to character positions for the API response
+            let safe_start = find_char_boundary(text, s.start_index);
+            let safe_end = find_char_boundary(text, s.end_index.min(text.len()));
             let char_start = text[..safe_start].chars().count();
             let char_end = text[..safe_end].chars().count();
-            let text_chars: Vec<char> = text.chars().collect();
-            
-            // Safely extract substring
-            let string: String = if char_end <= text_chars.len() {
-                text_chars[char_start..char_end].iter().collect()
-            } else {
-                text_chars[char_start..].iter().collect()
-            };
             
             let char_length = string.chars().count();
             let excerpt = if char_length > 50 {
@@ -1897,21 +1890,14 @@ async fn get_glue_index(
 
         // Process semi-sticky sentences (35-45% glue) - now using field directly from struct
         for s in para_report.sticky_sentences.semi_sticky_sentences {
-            // Find nearest valid character boundaries
-            let safe_start = find_char_boundary(text, s.start_index);
-            let safe_end = find_char_boundary(text, s.end_index);
+            // Use the sentence text directly from the analyzer - it's already complete!
+            let string = s.sentence.clone();
             
-            // Convert byte positions to character positions
+            // Convert byte positions to character positions for the API response
+            let safe_start = find_char_boundary(text, s.start_index);
+            let safe_end = find_char_boundary(text, s.end_index.min(text.len()));
             let char_start = text[..safe_start].chars().count();
             let char_end = text[..safe_end].chars().count();
-            let text_chars: Vec<char> = text.chars().collect();
-            
-            // Safely extract substring
-            let string: String = if char_end <= text_chars.len() {
-                text_chars[char_start..char_end].iter().collect()
-            } else {
-                text_chars[char_start..].iter().collect()
-            };
             
             let char_length = string.chars().count();
             let excerpt = if char_length > 50 {

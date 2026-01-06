@@ -384,7 +384,12 @@ impl<'a> ComprehensiveAnalyzer<'a> {
 
         // Check 2-word, 3-word, and 4-word phrases
         for phrase_length in 2..=4 {
-            for i in 0..=words_with_pos.len().saturating_sub(phrase_length) {
+            // Skip if we don't have enough words for this phrase length
+            if words_with_pos.len() < phrase_length {
+                continue;
+            }
+            
+            for i in 0..=words_with_pos.len() - phrase_length {
                 let phrase_words: Vec<String> = words_with_pos[i..i + phrase_length]
                     .iter()
                     .map(|(w, _, _)| w.clone())
