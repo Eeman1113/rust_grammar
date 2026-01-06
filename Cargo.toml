@@ -1,6 +1,6 @@
 [package]
 name = "Rust_Grammar"
-version = "2.1.0"
+version = "2.1.1"
 edition = "2021"
 authors = ["Eeman Majumder <eeman.majumder@gmail.com>"]
 description = "A comprehensive, production-ready text analysis tool and API server"
