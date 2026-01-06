@@ -97,7 +97,7 @@ echo ""
 echo "Recent logs:"
 pm2 logs $APP_NAME --lines 10 --nostream
 echo ""
-echo -e "${GREEN}✅ API is running on http://0.0.0.0:2000${NC}"
+echo -e "${GREEN}✅ API is running on http://0.0.0.0:80${NC}"
 echo ""
 echo "Useful commands:"
 echo "  pm2 logs $APP_NAME      - View logs"
