@@ -209,8 +209,8 @@ impl<'a> ComprehensiveAnalyzer<'a> {
         let very_long: Vec<(usize, usize)> = sentence_lengths
             .iter()
             .enumerate()
-            // .filter(|(_, &len)| len > 30)
-            .filter(|&(_, len)| len > 30)
+            .filter(|(_, &len)| len > 30)
+            // .filter(|&(_, len)| len > 30)
             .map(|(i, &len)| (i + 1, len))
             .collect();
 
